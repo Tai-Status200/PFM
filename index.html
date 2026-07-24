@@ -216,6 +216,12 @@
       margin: 8px 0; 
     }
 
+    .event-booked-by {
+      font-size: 16px;
+      color: var(--text-muted);
+      margin: 6px 0 12px 0;
+    }
+
     .event-room { 
       display: inline-block; 
       background: #e0e7ff; 
@@ -349,12 +355,16 @@
         const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
         const startStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         const endStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        
+        // Identify the person/email who made the booking
+        const bookedBy = ev.email || ev.bookedBy || ev.creator || ev.organizer || "Not specified";
 
         html += `
           <div class="event-item">
             <span class="event-room">${ev.room}</span>
             <div class="event-title">${ev.title}</div>
             <div class="event-time">${dateStr} | <strong>${startStr} - ${endStr}</strong></div>
+            <div class="event-booked-by">Booked by: <strong>${bookedBy}</strong></div>
             <button class="btn btn-danger" onclick="deleteBooking('${ev.id}', '${ev.room}')">Remove Booking</button>
           </div>
         `;
