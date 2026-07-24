@@ -173,6 +173,16 @@
     
     .btn-danger:hover { background-color: #b91c1c; }
 
+    .btn-secondary {
+      background-color: #64748b;
+      color: white;
+      width: auto;
+      padding: 12px 24px;
+      font-size: 18px;
+      border-radius: 8px;
+    }
+    .btn-secondary:hover { background-color: #475569; }
+
     /* STATUS BANNERS */
     #status-banner {
       display: none;
@@ -230,6 +240,66 @@
       border-radius: 20px; 
       font-weight: 700; 
       font-size: 16px; 
+    }
+
+    /* CUSTOM MODAL STYLING */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      max-width: 500px;
+      width: 100%;
+      padding: 32px;
+      border-radius: 16px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      border-top: 6px solid var(--danger);
+      animation: modalFadeIn 0.2s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--danger);
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+
+    .modal-desc {
+      color: var(--text-muted);
+      font-size: 18px;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 480px) {
+      .modal-actions { flex-direction: column-reverse; }
+      .modal-actions button { width: 100%; }
     }
   </style>
 </head>
@@ -306,17 +376,55 @@
     </div>
   </div>
 
+  <!-- CUSTOM DELETE CONFIRMATION MODAL -->
+  <div id="delete-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 class="modal-title">Remove Reservation?</h3>
+      <p class="modal-desc" id="modal-desc-text">To remove this booking from the calendar, please enter your Approved Leader Email Address:</p>
+      <form id="delete-form">
+        <div class="form-group" style="margin-bottom: 0;">
+          <input type="email" id="delete-email-input" placeholder="Enter leader email address..." required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Keep Booking</button>
+          <button type="submit" class="btn btn-danger" style="margin-top: 0; padding: 12px 24px; font-size: 18px;">Confirm Removal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     // ================= CONFIGURATION =================
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxt7PtVWgHCVByCDm83EDVekvNLFnvpDd93_0T2TE5y6-IvQkgOYfNZZ-hlnESvnUia/exec"; 
     
     let allFetchedEvents = [];
+    let currentDeleteId = null;
+    let currentDeleteRoom = null;
 
     // Initialize date picker to today's date by default
     document.getElementById('date').min = new Date().toISOString().split("T")[0];
 
     // Load events as soon as the webpage opens
     window.onload = fetchUpcomingEvents;
+
+    // ================= HELPER: FORMAT EMAIL TO FIRST NAME =================
+    function formatNameFromEmail(emailOrName) {
+      if (!emailOrName || emailOrName === "Not specified") return "Not specified";
+      
+      if (!emailOrName.includes("@")) {
+        return emailOrName.charAt(0).toUpperCase() + emailOrName.slice(1);
+      }
+      
+      let username = emailOrName.split("@")[0];
+      let firstName = username.split(/[._-]/)[0];
+      firstName = firstName.replace(/[0-9]+$/, '');
+      
+      if (!firstName) {
+        firstName = username;
+      }
+      
+      return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+    }
 
     // ================= FETCH & RENDER EVENTS =================
     async function fetchUpcomingEvents() {
@@ -343,7 +451,6 @@
         return;
       }
 
-      // Sort events chronologically
       events.sort((a, b) => new Date(a.start) - new Date(b.start));
 
       let html = "";
@@ -351,21 +458,20 @@
         const startDate = new Date(ev.start);
         const endDate = new Date(ev.end);
         
-        // Easy-to-read formatting (e.g., "Sunday, August 2 | 2:00 PM - 4:00 PM")
         const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
         const startStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         const endStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         
-        // Identify the person/email who made the booking
-        const bookedBy = ev.email || ev.bookedBy || ev.creator || ev.organizer || "Not specified";
+        const rawBookedBy = ev.email || ev.bookedBy || ev.creator || ev.organizer || ev.user || ev.leaderEmail || "Not specified";
+        const cleanName = formatNameFromEmail(rawBookedBy);
 
         html += `
           <div class="event-item">
             <span class="event-room">${ev.room}</span>
             <div class="event-title">${ev.title}</div>
             <div class="event-time">${dateStr} | <strong>${startStr} - ${endStr}</strong></div>
-            <div class="event-booked-by">Booked by: <strong>${bookedBy}</strong></div>
-            <button class="btn btn-danger" onclick="deleteBooking('${ev.id}', '${ev.room}')">Remove Booking</button>
+            <div class="event-booked-by">Booked by: <strong>${cleanName}</strong></div>
+            <button class="btn btn-danger" onclick="openDeleteModal('${ev.id}', '${ev.room}')">Remove Booking</button>
           </div>
         `;
       });
@@ -379,9 +485,8 @@
           const existingStart = new Date(ev.start);
           const existingEnd = new Date(ev.end);
 
-          // Overlap formula: (NewStart < ExistingEnd) AND (NewEnd > ExistingStart)
           if (newStart < existingEnd && newEnd > existingStart) {
-            return ev; // Return conflicting event
+            return ev; 
           }
         }
       }
@@ -402,13 +507,11 @@
       const newStart = new Date(`${date}T${startTime}`);
       const newEnd = new Date(`${date}T${endTime}`);
 
-      // 1. Basic logical check
       if (newEnd <= newStart) {
         showBanner("The End Time must be later than the Start Time.", "error");
         return;
       }
 
-      // 2. INSTANT OVERLAP CHECK
       const conflict = checkTimeConflict(room, newStart, newEnd);
       if (conflict) {
         const conflictStart = new Date(conflict.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -418,7 +521,6 @@
         return;
       }
 
-      // 3. Send request if time slot is clear
       showBanner("Sending your booking request to the server... please wait.", "loading");
       document.getElementById("submit-btn").disabled = true;
 
@@ -443,7 +545,7 @@
         if (result.status === "success") {
           showBanner(`SUCCESS: Your booking for ${room} has been confirmed!`, "success");
           document.getElementById("booking-form").reset();
-          fetchUpcomingEvents(); // Refresh schedule automatically
+          fetchUpcomingEvents(); 
         } else {
           showBanner(`BOOKING FAILED: ${result.message}`, "error");
         }
@@ -454,11 +556,45 @@
       }
     });
 
-    // ================= DELETE BOOKING =================
-    async function deleteBooking(eventId, room) {
-      const email = prompt(`To remove this booking from the ${room} calendar, please enter your Approved Leader Email Address:`);
+    // ================= DELETE MODAL LOGIC =================
+    function openDeleteModal(eventId, room) {
+      currentDeleteId = eventId;
+      currentDeleteRoom = room;
+      
+      // Update text to show exactly what room they are removing
+      document.getElementById("modal-desc-text").innerHTML = `To remove this booking from the <strong>${room}</strong> calendar, please enter your Approved Leader Email Address:`;
+      
+      // Clear previous input and show modal
+      document.getElementById("delete-email-input").value = "";
+      document.getElementById("delete-modal").style.display = "flex";
+      document.getElementById("delete-email-input").focus();
+    }
+
+    function closeDeleteModal() {
+      document.getElementById("delete-modal").style.display = "none";
+      currentDeleteId = null;
+      currentDeleteRoom = null;
+    }
+
+    // Close modal if user clicks outside of the box
+    window.onclick = function(event) {
+      const modal = document.getElementById("delete-modal");
+      if (event.target === modal) {
+        closeDeleteModal();
+      }
+    }
+
+    // Handle actual deletion when modal form is submitted
+    document.getElementById("delete-form").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById("delete-email-input").value.trim();
       if (!email) return;
 
+      const eventId = currentDeleteId;
+      const room = currentDeleteRoom;
+      
+      closeDeleteModal();
       showBanner("Removing booking... please wait.", "loading");
 
       try {
@@ -466,7 +602,7 @@
           action: "DELETE",
           eventId: eventId,
           room: room,
-          email: email.trim()
+          email: email
         };
 
         const response = await fetch(WEB_APP_URL, {
@@ -480,13 +616,12 @@
           showBanner("Booking successfully removed from the calendar.", "success");
           fetchUpcomingEvents();
         } else {
-          alert(`Could not remove booking: ${result.message}`);
           showBanner(`Removal Failed: ${result.message}`, "error");
         }
       } catch (err) {
-        alert("Network error while trying to remove booking.");
+        showBanner("Network error while trying to remove booking.", "error");
       }
-    }
+    });
 
     // ================= HELPER: SHOW STATUS BANNER =================
     function showBanner(text, type) {
