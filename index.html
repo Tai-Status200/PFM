@@ -407,10 +407,55 @@
     // Load events as soon as the webpage opens
     window.onload = fetchUpcomingEvents;
 
+    // ================= SMART DEEP SCANNER FOR WHO BOOKED IT =================
+    function extractBookedBy(ev) {
+      // 1. Check a massive list of likely string property names
+      const possibleKeys = [
+        'email', 'leaderEmail', 'bookedBy', 'creator', 'organizer', 
+        'user', 'contact', 'leader', 'who', 'author', 'emailAddress',
+        'approvedLeader', 'approvedEmail'
+      ];
+      
+      for (let key of possibleKeys) {
+        if (ev[key] && typeof ev[key] === 'string' && ev[key].trim() !== '') {
+          return ev[key];
+        }
+      }
+
+      // 2. Check if Google Calendar returned an array (e.g. creators: ['email@gmail.com'])
+      const arrayKeys = ['creators', 'organizers', 'guests', 'attendees'];
+      for (let key of arrayKeys) {
+        if (Array.isArray(ev[key]) && ev[key].length > 0) {
+          const item = ev[key][0];
+          return typeof item === 'object' ? (item.email || item.displayName || null) : item;
+        }
+      }
+
+      // 3. REGEX SEARCH: Did the Google Script save the email inside the Event Description/Notes?
+      const descText = ev.description || ev.details || ev.notes || ev.body || '';
+      if (typeof descText === 'string') {
+        const emailMatch = descText.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/i);
+        if (emailMatch) {
+          return emailMatch[1];
+        }
+      }
+
+      // 4. ULTIMATE DEEP SCAN: Loop through ALL properties in the object looking for an '@' symbol
+      for (let key in ev) {
+        if (typeof ev[key] === 'string' && ev[key].includes('@')) {
+          return ev[key];
+        }
+      }
+
+      // 5. GRACEFUL FALLBACK: If absolutely no email was returned by the script, use the Ministry/Group Name!
+      return ev.groupName || ev.group || ev.ministry || null;
+    }
+
     // ================= HELPER: FORMAT EMAIL TO FIRST NAME =================
     function formatNameFromEmail(emailOrName) {
       if (!emailOrName || emailOrName === "Not specified") return "Not specified";
       
+      // If it doesn't contain an @ symbol (e.g., fell back to "Youth Ministry"), just return it capitalized
       if (!emailOrName.includes("@")) {
         return emailOrName.charAt(0).toUpperCase() + emailOrName.slice(1);
       }
@@ -462,7 +507,8 @@
         const startStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         const endStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         
-        const rawBookedBy = ev.email || ev.bookedBy || ev.creator || ev.organizer || ev.user || ev.leaderEmail || "Not specified";
+        // Use our deep scanner to find who booked it
+        const rawBookedBy = extractBookedBy(ev) || "Not specified";
         const cleanName = formatNameFromEmail(rawBookedBy);
 
         html += `
@@ -561,10 +607,8 @@
       currentDeleteId = eventId;
       currentDeleteRoom = room;
       
-      // Update text to show exactly what room they are removing
       document.getElementById("modal-desc-text").innerHTML = `To remove this booking from the <strong>${room}</strong> calendar, please enter your Approved Leader Email Address:`;
       
-      // Clear previous input and show modal
       document.getElementById("delete-email-input").value = "";
       document.getElementById("delete-modal").style.display = "flex";
       document.getElementById("delete-email-input").focus();
@@ -576,7 +620,6 @@
       currentDeleteRoom = null;
     }
 
-    // Close modal if user clicks outside of the box
     window.onclick = function(event) {
       const modal = document.getElementById("delete-modal");
       if (event.target === modal) {
@@ -584,7 +627,6 @@
       }
     }
 
-    // Handle actual deletion when modal form is submitted
     document.getElementById("delete-form").addEventListener("submit", async function(e) {
       e.preventDefault();
       
