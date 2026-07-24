@@ -3,123 +3,172 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Church Room Booking System</title>
+  <title>Power of Faith Ministries International Inc. — Room Booking</title>
   <style>
-    /* ELDER-FRIENDLY STYLING: HIGH CONTRAST, LARGE FONTS, BIG BUTTONS */
+    /* MODERN, HIGH-CONTRAST ACCESSIBLE DESIGN SYSTEM */
     :root {
-      --primary: #1a56db;
-      --primary-hover: #1e40af;
-      --success: #057a55;
-      --danger: #e24c4c;
-      --bg: #f3f4f6;
+      --primary: #0f2b5c;       /* Deep Church Royal Blue */
+      --primary-light: #1e40af;
+      --accent: #2563eb;
+      --success: #047857;
+      --danger: #dc2626;
+      --bg: #f8fafc;            /* Crisp modern light slate background */
       --card-bg: #ffffff;
-      --text: #1f2937;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --border-color: #cbd5e1;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 10px 25px -5px rgba(15, 43, 92, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
     }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--bg);
-      color: var(--text);
+      color: var(--text-main);
       line-height: 1.6;
       margin: 0;
-      padding: 20px;
-      font-size: 18px; /* Larger base font size for readability */
+      padding: 24px 16px;
+      font-size: 19px;
     }
 
     .container {
-      max-width: 800px;
+      max-width: 820px;
       margin: 0 auto;
     }
 
+    /* HEADER & LOGO BRANDING */
     header {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 35px;
+      background: var(--card-bg);
+      padding: 28px 20px;
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      border-top: 6px solid var(--primary);
+    }
+
+    .logo-container {
+      margin-bottom: 16px;
+    }
+
+    .church-logo {
+      max-width: 100%;
+      height: auto;
+      max-height: 110px;
+      object-fit: contain;
     }
 
     h1 {
-      font-size: 32px;
-      color: #111827;
-      margin-bottom: 10px;
+      font-size: 28px;
+      color: var(--primary);
+      margin: 10px 0 6px 0;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
     }
 
+    .subtitle {
+      font-size: 18px;
+      color: var(--text-muted);
+      margin: 0;
+      font-weight: 500;
+    }
+
+    /* CARDS */
     .card {
       background: var(--card-bg);
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      margin-bottom: 30px;
+      padding: 32px;
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 32px;
+      border: 1px solid #e2e8f0;
     }
 
     h2 {
-      font-size: 24px;
+      font-size: 23px;
+      color: var(--primary);
       margin-top: 0;
-      border-bottom: 2px solid #e5e7eb;
-      padding-bottom: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
-    /* FORM INPUTS - LARGE AND EASY TO TAP */
+    /* FORM INPUTS */
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 22px;
     }
 
     label {
       display: block;
-      font-weight: bold;
+      font-weight: 700;
       margin-bottom: 8px;
       font-size: 20px;
+      color: var(--text-main);
     }
 
     input, select {
       width: 100%;
-      padding: 14px;
+      padding: 16px;
       font-size: 18px;
-      border: 2px solid #d1d5db;
-      border-radius: 8px;
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
       box-sizing: border-box;
-      background-color: #f9fafb;
+      background-color: #f8fafc;
+      color: var(--text-main);
+      transition: all 0.2s ease;
     }
 
     input:focus, select:focus {
       outline: none;
-      border-color: var(--primary);
-      background-color: #fff;
+      border-color: var(--accent);
+      background-color: #ffffff;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
     }
 
     .grid-2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 15px;
+      gap: 16px;
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 640px) {
       .grid-2 { grid-template-columns: 1fr; }
+      body { padding: 16px 12px; }
+      .card { padding: 20px; }
+      h1 { font-size: 24px; }
     }
 
-    /* MASSIVE BUTTONS */
+    /* BUTTONS */
     .btn {
       display: inline-block;
       width: 100%;
-      padding: 16px;
-      font-size: 20px;
-      font-weight: bold;
-      color: white;
+      padding: 18px;
+      font-size: 21px;
+      font-weight: 700;
+      color: #ffffff;
       background-color: var(--primary);
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
       text-align: center;
-      transition: background-color 0.2s;
+      transition: background-color 0.2s, transform 0.1s;
+      box-shadow: var(--shadow-sm);
     }
 
-    .btn:hover { background-color: var(--primary-hover); }
-    .btn:disabled { background-color: #9ca3af; cursor: not-allowed; }
+    .btn:hover { background-color: var(--primary-light); }
+    .btn:active { transform: scale(0.99); }
+    .btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
 
     .btn-danger {
       background-color: var(--danger);
       width: auto;
       padding: 10px 18px;
       font-size: 16px;
-      margin-top: 10px;
+      margin-top: 12px;
+      border-radius: 8px;
     }
     
     .btn-danger:hover { background-color: #b91c1c; }
@@ -128,37 +177,66 @@
     #status-banner {
       display: none;
       padding: 20px;
-      border-radius: 8px;
+      border-radius: 12px;
       font-size: 20px;
-      font-weight: bold;
-      margin-bottom: 20px;
+      font-weight: 700;
+      margin-bottom: 24px;
       text-align: center;
+      line-height: 1.4;
     }
 
-    .banner-error { background-color: #fee2e2; color: #991b1b; border: 2px solid #f87171; }
-    .banner-success { background-color: #d1fae5; color: #065f46; border: 2px solid #34d399; }
-    .banner-loading { background-color: #e0f2fe; color: #075985; border: 2px solid #38bdf8; }
+    .banner-error { background-color: #fef2f2; color: #991b1b; border: 2px solid #f87171; }
+    .banner-success { background-color: #ecfdf5; color: #065f46; border: 2px solid #34d399; }
+    .banner-loading { background-color: #f0f9ff; color: #075985; border: 2px solid #38bdf8; }
 
     /* UPCOMING EVENTS LIST */
     .event-item {
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
       padding: 20px;
-      margin-bottom: 15px;
-      background-color: #fafafa;
+      margin-bottom: 16px;
+      background-color: #ffffff;
+      transition: border-color 0.2s;
     }
 
-    .event-title { font-size: 22px; font-weight: bold; color: var(--primary); }
-    .event-time { font-size: 18px; color: #4b5563; margin: 8px 0; }
-    .event-room { display: inline-block; background: #e5e7eb; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 16px; }
+    .event-item:hover {
+      border-color: #cbd5e1;
+    }
+
+    .event-title { 
+      font-size: 22px; 
+      font-weight: 800; 
+      color: var(--primary); 
+      margin-top: 6px;
+    }
+
+    .event-time { 
+      font-size: 18px; 
+      color: var(--text-muted); 
+      margin: 8px 0; 
+    }
+
+    .event-room { 
+      display: inline-block; 
+      background: #e0e7ff; 
+      color: var(--primary);
+      padding: 4px 14px; 
+      border-radius: 20px; 
+      font-weight: 700; 
+      font-size: 16px; 
+    }
   </style>
 </head>
 <body>
 
   <div class="container">
+    <!-- HEADER WITH CHURCH LOGO -->
     <header>
-      <h1>⛪ Church Room Booking</h1>
-      <p>Select a room, date, and time below to reserve your space.</p>
+      <div class="logo-container">
+        <img src="PFM.png" alt="The Power of Faith Ministries International Inc. Logo" class="church-logo">
+      </div>
+      <h1>The Power of Faith Ministries International Inc.</h1>
+      <p class="subtitle">Facility & Room Reservation System</p>
     </header>
 
     <!-- STATUS ALERT BANNER -->
@@ -166,7 +244,7 @@
 
     <!-- BOOKING FORM -->
     <div class="card">
-      <h2>1. Request a Room</h2>
+      <h2>1. Reserve a Facility</h2>
       <form id="booking-form">
         
         <div class="form-group">
@@ -208,14 +286,14 @@
           </div>
         </div>
 
-        <button type="submit" class="btn" id="submit-btn">📅 Check Availability & Book</button>
+        <button type="submit" class="btn" id="submit-btn">Check Availability & Book</button>
       </form>
     </div>
 
     <!-- UPCOMING BOOKINGS LIST -->
     <div class="card">
-      <h2>2. Current & Upcoming Bookings</h2>
-      <p style="color: #6b7280; font-size: 16px;">Check below to see what is already scheduled for the next 30 days.</p>
+      <h2>2. Scheduled Bookings</h2>
+      <p style="color: var(--text-muted); font-size: 17px; margin-top: -8px;">Review existing reservations for the next 30 days before booking.</p>
       <div id="events-container">
         <p>Loading schedule... please wait.</p>
       </div>
@@ -224,7 +302,6 @@
 
   <script>
     // ================= CONFIGURATION =================
-    // PASTE YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL HERE:
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxt7PtVWgHCVByCDm83EDVekvNLFnvpDd93_0T2TE5y6-IvQkgOYfNZZ-hlnESvnUia/exec"; 
     
     let allFetchedEvents = [];
@@ -246,17 +323,17 @@
           allFetchedEvents = data.events;
           renderEventsList(allFetchedEvents);
         } else {
-          container.innerHTML = `<p style="color:red;">Could not load schedule: ${data.message}</p>`;
+          container.innerHTML = `<p style="color:var(--danger);">Could not load schedule: ${data.message}</p>`;
         }
       } catch (err) {
-        container.innerHTML = `<p style="color:red;">Failed to connect to the church calendar system. Please refresh the page.</p>`;
+        container.innerHTML = `<p style="color:var(--danger);">Failed to connect to the church calendar system. Please refresh the page.</p>`;
       }
     }
 
     function renderEventsList(events) {
       const container = document.getElementById("events-container");
       if (events.length === 0) {
-        container.innerHTML = "<p>No upcoming bookings scheduled for the next 30 days. All rooms are free!</p>";
+        container.innerHTML = "<p style='color: var(--text-muted); font-weight: 500;'>No upcoming bookings scheduled for the next 30 days. All rooms are available!</p>";
         return;
       }
 
@@ -277,8 +354,8 @@
           <div class="event-item">
             <span class="event-room">${ev.room}</span>
             <div class="event-title">${ev.title}</div>
-            <div class="event-time">🕒 ${dateStr} | <strong>${startStr} - ${endStr}</strong></div>
-            <button class="btn btn-danger" onclick="deleteBooking('${ev.id}', '${ev.room}')">🗑️ Remove Booking</button>
+            <div class="event-time">${dateStr} | <strong>${startStr} - ${endStr}</strong></div>
+            <button class="btn btn-danger" onclick="deleteBooking('${ev.id}', '${ev.room}')">Remove Booking</button>
           </div>
         `;
       });
@@ -294,11 +371,11 @@
 
           // Overlap formula: (NewStart < ExistingEnd) AND (NewEnd > ExistingStart)
           if (newStart < existingEnd && newEnd > existingStart) {
-            return ev; // Return the conflicting event details
+            return ev; // Return conflicting event
           }
         }
       }
-      return null; // No conflict found!
+      return null;
     }
 
     // ================= FORM SUBMISSION =================
@@ -317,7 +394,7 @@
 
       // 1. Basic logical check
       if (newEnd <= newStart) {
-        showBanner("⚠️ The End Time must be later than the Start Time.", "error");
+        showBanner("The End Time must be later than the Start Time.", "error");
         return;
       }
 
@@ -327,12 +404,12 @@
         const conflictStart = new Date(conflict.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         const conflictEnd = new Date(conflict.end).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         
-        showBanner(`⚠️ CANNOT BOOK: The ${room} is already reserved for "${conflict.title}" from ${conflictStart} to ${conflictEnd}. Please choose a different time!`, "error");
+        showBanner(`CANNOT BOOK: The ${room} is already reserved for "${conflict.title}" from ${conflictStart} to ${conflictEnd}. Please select a different time!`, "error");
         return;
       }
 
-      // 3. Send to Google Apps Script if time is clear
-      showBanner("⏳ Sending your booking to the calendar... please wait.", "loading");
+      // 3. Send request if time slot is clear
+      showBanner("Sending your booking request to the server... please wait.", "loading");
       document.getElementById("submit-btn").disabled = true;
 
       try {
@@ -346,7 +423,6 @@
           endTime: endTime
         };
 
-        // Note: We use text/plain to avoid CORS preflight errors with Google Apps Script
         const response = await fetch(WEB_APP_URL, {
           method: "POST",
           body: JSON.stringify(payload)
@@ -355,14 +431,14 @@
         const result = await response.json();
 
         if (result.status === "success") {
-          showBanner(`✅ SUCCESS: Your booking for ${room} is confirmed!`, "success");
+          showBanner(`SUCCESS: Your booking for ${room} has been confirmed!`, "success");
           document.getElementById("booking-form").reset();
           fetchUpcomingEvents(); // Refresh schedule automatically
         } else {
-          showBanner(`❌ BOOKING FAILED: ${result.message}`, "error");
+          showBanner(`BOOKING FAILED: ${result.message}`, "error");
         }
       } catch (err) {
-        showBanner("❌ Network Error: Could not connect to the booking server.", "error");
+        showBanner("Network Error: Could not connect to the booking server.", "error");
       } finally {
         document.getElementById("submit-btn").disabled = false;
       }
@@ -371,9 +447,9 @@
     // ================= DELETE BOOKING =================
     async function deleteBooking(eventId, room) {
       const email = prompt(`To remove this booking from the ${room} calendar, please enter your Approved Leader Email Address:`);
-      if (!email) return; // User canceled
+      if (!email) return;
 
-      showBanner("⏳ Removing booking... please wait.", "loading");
+      showBanner("Removing booking... please wait.", "loading");
 
       try {
         const payload = {
@@ -391,11 +467,11 @@
         const result = await response.json();
 
         if (result.status === "success") {
-          showBanner("🗑️ Booking successfully removed from the calendar.", "success");
-          fetchUpcomingEvents(); // Refresh list
+          showBanner("Booking successfully removed from the calendar.", "success");
+          fetchUpcomingEvents();
         } else {
           alert(`Could not remove booking: ${result.message}`);
-          showBanner(`❌ Removal Failed: ${result.message}`, "error");
+          showBanner(`Removal Failed: ${result.message}`, "error");
         }
       } catch (err) {
         alert("Network error while trying to remove booking.");
@@ -409,7 +485,6 @@
       banner.className = `banner-${type}`;
       banner.style.display = "block";
       
-      // Scroll up slightly so the elder sees the message
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   </script>
