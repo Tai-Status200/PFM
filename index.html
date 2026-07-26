@@ -12,7 +12,7 @@
       --accent: #2563eb;
       --success: #047857;
       --danger: #dc2626;
-      --bg: #f8fafc;            /* Crisp modern light slate background */
+      --bg: #f8fafc;             /* Crisp modern light slate background */
       --card-bg: #ffffff;
       --text-main: #0f172a;
       --text-muted: #475569;
@@ -409,7 +409,6 @@
 
     // ================= SMART DEEP SCANNER FOR WHO BOOKED IT =================
     function extractBookedBy(ev) {
-      // 1. Check a massive list of likely string property names
       const possibleKeys = [
         'email', 'leaderEmail', 'bookedBy', 'creator', 'organizer', 
         'user', 'contact', 'leader', 'who', 'author', 'emailAddress',
@@ -422,7 +421,6 @@
         }
       }
 
-      // 2. Check if Google Calendar returned an array (e.g. creators: ['email@gmail.com'])
       const arrayKeys = ['creators', 'organizers', 'guests', 'attendees'];
       for (let key of arrayKeys) {
         if (Array.isArray(ev[key]) && ev[key].length > 0) {
@@ -431,7 +429,6 @@
         }
       }
 
-      // 3. REGEX SEARCH: Did the Google Script save the email inside the Event Description/Notes?
       const descText = ev.description || ev.details || ev.notes || ev.body || '';
       if (typeof descText === 'string') {
         const emailMatch = descText.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/i);
@@ -440,14 +437,12 @@
         }
       }
 
-      // 4. ULTIMATE DEEP SCAN: Loop through ALL properties in the object looking for an '@' symbol
       for (let key in ev) {
         if (typeof ev[key] === 'string' && ev[key].includes('@')) {
           return ev[key];
         }
       }
 
-      // 5. GRACEFUL FALLBACK: If absolutely no email was returned by the script, use the Ministry/Group Name!
       return ev.groupName || ev.group || ev.ministry || null;
     }
 
@@ -455,7 +450,6 @@
     function formatNameFromEmail(emailOrName) {
       if (!emailOrName || emailOrName === "Not specified") return "Not specified";
       
-      // If it doesn't contain an @ symbol (e.g., fell back to "Youth Ministry"), just return it capitalized
       if (!emailOrName.includes("@")) {
         return emailOrName.charAt(0).toUpperCase() + emailOrName.slice(1);
       }
@@ -479,7 +473,11 @@
         const data = await response.json();
 
         if (data.status === "success") {
-          allFetchedEvents = data.events;
+          const now = new Date();
+          
+          // AUTO-REMOVE EXPIRED EVENTS: Filter out events where end time is in the past
+          allFetchedEvents = data.events.filter(ev => new Date(ev.end) > now);
+          
           renderEventsList(allFetchedEvents);
         } else {
           container.innerHTML = `<p style="color:var(--danger);">Could not load schedule: ${data.message}</p>`;
@@ -507,7 +505,6 @@
         const startStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         const endStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         
-        // Use our deep scanner to find who booked it
         const rawBookedBy = extractBookedBy(ev) || "Not specified";
         const cleanName = formatNameFromEmail(rawBookedBy);
 
@@ -555,6 +552,11 @@
 
       if (newEnd <= newStart) {
         showBanner("The End Time must be later than the Start Time.", "error");
+        return;
+      }
+
+      if (newStart < new Date()) {
+        showBanner("Cannot create a reservation for a time that has already passed.", "error");
         return;
       }
 
