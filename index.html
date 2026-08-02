@@ -48,6 +48,9 @@
 
     /* HEADER & LOGO BRANDING */
     header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       text-align: center;
       margin-bottom: 35px;
       background: var(--card-bg);
@@ -55,7 +58,6 @@
       border-radius: 16px;
       box-shadow: var(--shadow-lg);
       border-top: 6px solid var(--primary);
-      position: relative;
     }
 
     .logo-container {
@@ -85,19 +87,27 @@
       font-weight: 500;
     }
 
-    .admin-toggle-link {
-      display: inline-block;
-      margin-top: 14px;
+    .admin-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 18px;
       font-size: 14px;
+      font-weight: 700;
       color: var(--text-muted);
-      text-decoration: underline;
       cursor: pointer;
-      background: none;
-      border: none;
-      padding: 4px;
+      background: #f1f5f9;
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px 18px;
+      transition: all 0.2s ease;
     }
 
-    .admin-toggle-link:hover { color: var(--primary); }
+    .admin-toggle-btn:hover {
+      color: var(--primary);
+      border-color: var(--primary);
+      background: #eef2ff;
+    }
 
     /* CARDS */
     .card {
@@ -154,13 +164,14 @@
     }
 
     .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
       gap: 16px;
     }
 
+    .grid-2 .form-group { flex: 1 1 0; min-width: 0; }
+
     @media (max-width: 640px) {
-      .grid-2 { grid-template-columns: 1fr; }
+      .grid-2 { flex-direction: column; }
       body { padding: 16px 12px; }
       .card { padding: 20px; }
       h1 { font-size: 24px; }
@@ -387,6 +398,92 @@
       cursor: pointer;
     }
     .btn-small-danger:hover { background-color: #b91c1c; }
+
+    /* PWA INSTALL PROMPT */
+    #install-prompt {
+      display: none;
+      position: fixed;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      z-index: 900;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 14px;
+      box-shadow: var(--shadow-lg);
+      padding: 18px 20px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .install-prompt-body {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .install-prompt-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .install-prompt-text {
+      flex: 1 1 200px;
+      min-width: 180px;
+    }
+
+    .install-prompt-title {
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--text-main);
+      margin: 0 0 4px 0;
+    }
+
+    .install-prompt-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .install-prompt-actions {
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .btn-install {
+      background-color: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-install:hover { background-color: var(--primary-light); }
+
+    .btn-dismiss {
+      background: none;
+      color: var(--text-muted);
+      border: 2px solid var(--border-color);
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-dismiss:hover { color: var(--text-main); border-color: var(--text-muted); }
+
+    @media (max-width: 480px) {
+      .install-prompt-actions { width: 100%; }
+      .btn-install, .btn-dismiss { flex: 1; }
+    }
   </style>
 </head>
 <body>
@@ -399,8 +496,7 @@
       </div>
       <h1>The Power of Faith Ministries International Inc.</h1>
       <p class="subtitle">Facility & Room Reservation System</p>
-      <br>
-      <button type="button" class="admin-toggle-link" onclick="toggleAdminLogin()">Admin</button>
+      <button type="button" class="admin-toggle-btn" onclick="toggleAdminLogin()">Admin</button>
     </header>
 
     <!-- STATUS ALERT BANNER -->
@@ -408,7 +504,7 @@
 
     <!-- ADMIN LOGIN (hidden by default) -->
     <div class="card" id="admin-login-card" style="display:none;">
-      <h2>🔒 Admin Access</h2>
+      <h2>Admin Access</h2>
       <p style="color: var(--text-muted); font-size: 16px; margin-top: -8px;">
         Enter your administrator email. Access is verified by the server — entering any other email will simply be rejected.
       </p>
@@ -421,7 +517,7 @@
 
     <!-- ADMIN PANEL (only rendered after server confirms admin) -->
     <div class="card" id="admin-panel">
-      <span class="admin-badge">✓ Admin Mode</span>
+      <span class="admin-badge">Admin Mode</span>
       <h2>Manage Authorized Leaders</h2>
       <p style="color: var(--text-muted); font-size: 16px; margin-top: -8px;">
         Add or remove who is allowed to book rooms — no code editing required.
@@ -526,6 +622,21 @@
     </div>
   </div>
 
+  <!-- FIRST-VISIT PWA INSTALL PROMPT -->
+  <div id="install-prompt">
+    <div class="install-prompt-body">
+      <img src="PFM.png" alt="" class="install-prompt-icon">
+      <div class="install-prompt-text">
+        <p class="install-prompt-title" id="install-prompt-title">Install this app</p>
+        <p class="install-prompt-desc" id="install-prompt-desc">Add it to your home screen for quick, one-tap access.</p>
+      </div>
+      <div class="install-prompt-actions">
+        <button type="button" class="btn-install" id="install-prompt-action" onclick="handleInstallAction()">Install</button>
+        <button type="button" class="btn-dismiss" onclick="dismissInstallPrompt()">Not now</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ================= PWA: SERVICE WORKER REGISTRATION =================
     // Android requires a registered service worker before it will offer the
@@ -536,6 +647,84 @@
         navigator.serviceWorker.register('sw.js').catch(function(err) {
           console.log('Service worker registration failed (non-critical):', err);
         });
+      });
+    }
+
+    // ================= PWA: FIRST-VISIT INSTALL PROMPT =================
+    const INSTALL_PROMPT_SEEN_KEY = 'pfm_install_prompt_seen';
+    let deferredInstallPrompt = null;
+
+    function isRunningStandalone() {
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+
+    function isIosDevice() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    }
+
+    // Android/Chrome fires this when the site meets install criteria
+    // (manifest + service worker + HTTPS). We capture it and hold onto it
+    // instead of letting the browser show its own prompt immediately, so we
+    // can show our own banner on the visitor's first visit.
+    window.addEventListener('beforeinstallprompt', function(event) {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      maybeShowInstallPrompt('android');
+    });
+
+    window.addEventListener('appinstalled', function() {
+      localStorage.setItem(INSTALL_PROMPT_SEEN_KEY, 'true');
+      hideInstallPrompt();
+    });
+
+    function maybeShowInstallPrompt(platform) {
+      if (isRunningStandalone()) return; // already installed/running as an app
+      if (localStorage.getItem(INSTALL_PROMPT_SEEN_KEY) === 'true') return; // not first visit
+
+      const titleEl = document.getElementById('install-prompt-title');
+      const descEl = document.getElementById('install-prompt-desc');
+      const actionEl = document.getElementById('install-prompt-action');
+
+      if (platform === 'ios') {
+        titleEl.textContent = 'Install this app';
+        descEl.textContent = 'Tap the Share icon below, then "Add to Home Screen".';
+        actionEl.textContent = 'Got it';
+      } else {
+        titleEl.textContent = 'Install this app';
+        descEl.textContent = 'Add it to your home screen for quick, one-tap access.';
+        actionEl.textContent = 'Install';
+      }
+
+      document.getElementById('install-prompt').style.display = 'block';
+    }
+
+    async function handleInstallAction() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        try {
+          await deferredInstallPrompt.userChoice;
+        } catch (err) {
+          // no-op — user dismissed the native prompt
+        }
+        deferredInstallPrompt = null;
+      }
+      dismissInstallPrompt();
+    }
+
+    function dismissInstallPrompt() {
+      localStorage.setItem(INSTALL_PROMPT_SEEN_KEY, 'true');
+      hideInstallPrompt();
+    }
+
+    function hideInstallPrompt() {
+      document.getElementById('install-prompt').style.display = 'none';
+    }
+
+    // iOS never fires beforeinstallprompt, so show our instructional banner
+    // directly on first visit instead.
+    if (isIosDevice() && !isRunningStandalone()) {
+      window.addEventListener('load', function() {
+        maybeShowInstallPrompt('ios');
       });
     }
 
