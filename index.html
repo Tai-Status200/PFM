@@ -1099,7 +1099,11 @@
     async function fetchUpcomingEvents() {
       const container = document.getElementById("events-container");
       try {
-        const response = await fetch(WEB_APP_URL);
+        // Cache-busting query param + no-store: prevents the browser from
+        // reusing a redirect cached from a previous deployment (Apps Script
+        // generates a new internal content URL on every redeploy, even
+        // though /exec stays the same — a stale cached redirect 404s).
+        const response = await fetch(WEB_APP_URL + "?_=" + Date.now(), { cache: "no-store" });
         const data = await response.json();
 
         if (data.status === "success") {
