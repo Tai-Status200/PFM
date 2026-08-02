@@ -2,8 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Power of Faith Ministries International Inc. — Room Booking</title>
+
+  <!-- PWA: lets iOS/Android install this as a home-screen app -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f2b5c">
+
+  <!-- iOS-specific "Add to Home Screen" support (Safari ignores manifest.json) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PFM Bookings">
+  <link rel="apple-touch-icon" href="PFM.png">
   <style>
     /* MODERN, HIGH-CONTRAST ACCESSIBLE DESIGN SYSTEM */
     :root {
@@ -517,6 +527,18 @@
   </div>
 
   <script>
+    // ================= PWA: SERVICE WORKER REGISTRATION =================
+    // Android requires a registered service worker before it will offer the
+    // "Install app" prompt. This one deliberately does NOT cache anything —
+    // your bookings data is live and must never be served stale.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js').catch(function(err) {
+          console.log('Service worker registration failed (non-critical):', err);
+        });
+      });
+    }
+
     // ================= CONFIGURATION =================
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxt7PtVWgHCVByCDm83EDVekvNLFnvpDd93_0T2TE5y6-IvQkgOYfNZZ-hlnESvnUia/exec"; 
     
