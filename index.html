@@ -612,9 +612,22 @@
       </form>
     </div>
 
+    <!-- MY BOOKINGS (SELF-SERVICE) -->
+    <div class="card">
+      <h2>2. My Bookings</h2>
+      <p style="color: var(--text-muted); font-size: 17px; margin-top: -8px;">Enter your email to see and manage just your own bookings.</p>
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label for="my-bookings-email">Your Email:</label>
+        <input type="email" id="my-bookings-email" placeholder="e.g., yourname@gmail.com" onkeydown="if(event.key==='Enter'){event.preventDefault();findMyBookings();}">
+      </div>
+      <button type="button" class="btn" id="my-bookings-btn" onclick="findMyBookings()">Find My Bookings</button>
+
+      <div id="my-bookings-container" style="margin-top: 20px;"></div>
+    </div>
+
     <!-- UPCOMING BOOKINGS LIST -->
     <div class="card">
-      <h2>2. Scheduled Bookings</h2>
+      <h2>3. Scheduled Bookings</h2>
       <p style="color: var(--text-muted); font-size: 17px; margin-top: -8px;">Review existing reservations for the next 30 days before booking.</p>
       <div id="events-container">
         <p>Loading schedule... please wait.</p>
@@ -797,7 +810,10 @@
     document.getElementById('date').min = new Date().toISOString().split("T")[0];
 
     // Load events as soon as the webpage opens
-    window.onload = fetchUpcomingEvents;
+    window.onload = async function() {
+      await fetchUpcomingEvents();
+      handleUrlParams();
+    };
 
     // ================= ADMIN LOGIN / PANEL =================
     function toggleAdminLogin() {
@@ -1033,6 +1049,86 @@
       container.innerHTML = html;
     }
 
+    // ================= MY BOOKINGS (SELF-SERVICE) =================
+    function findMyBookings() {
+      const emailInput = document.getElementById("my-bookings-email");
+      const email = emailInput.value.trim().toLowerCase();
+      const container = document.getElementById("my-bookings-container");
+
+      if (!email) {
+        container.innerHTML = "<p style='color: var(--danger); font-weight: 600;'>Enter your email above to find your bookings.</p>";
+        return;
+      }
+
+      const mine = allFetchedEvents.filter(function(ev) {
+        const bookedBy = (extractBookedBy(ev) || "").toString().toLowerCase();
+        return bookedBy === email;
+      });
+
+      renderMyBookingsList(mine, email);
+    }
+
+    // Called after a delete/refresh so the My Bookings list stays in sync
+    // if someone already has it open, without requiring them to search again.
+    function refreshMyBookingsIfActive() {
+      const emailInput = document.getElementById("my-bookings-email");
+      if (emailInput.value.trim()) {
+        findMyBookings();
+      }
+    }
+
+    function renderMyBookingsList(events, email) {
+      const container = document.getElementById("my-bookings-container");
+
+      if (events.length === 0) {
+        container.innerHTML = "<p style='color: var(--text-muted); font-weight: 500;'>No upcoming bookings found for that email.</p>";
+        return;
+      }
+
+      events.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+      let html = "";
+      events.forEach(ev => {
+        const startDate = new Date(ev.start);
+        const endDate = new Date(ev.end);
+
+        const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        const startStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const endStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+        html += `
+          <div class="event-item">
+            <span class="event-room">${ev.room}</span>
+            <div class="event-title">${ev.title}</div>
+            <div class="event-time">${dateStr} | <strong>${startStr} - ${endStr}</strong></div>
+            <button class="btn btn-danger" onclick="openDeleteModal('${ev.id}', '${ev.room}', '${email.replace(/'/g, "\\'")}')">Remove Booking</button>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    // ================= DEEP LINKS FROM CONFIRMATION EMAILS =================
+    // Handles ?myEmail=...&cancelEventId=...&cancelRoom=... so a leader can
+    // land straight on their bookings (or a cancel confirmation) from an
+    // email link, without hunting through the full schedule.
+    function handleUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const myEmail = params.get('myEmail');
+      const cancelEventId = params.get('cancelEventId');
+      const cancelRoom = params.get('cancelRoom');
+
+      if (!myEmail) return;
+
+      document.getElementById('my-bookings-email').value = myEmail;
+      findMyBookings();
+      document.getElementById('my-bookings-email').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      if (cancelEventId && cancelRoom) {
+        openDeleteModal(cancelEventId, cancelRoom, myEmail);
+      }
+    }
+
     // ================= INSTANT OVERLAP CHECK =================
     function checkTimeConflict(room, newStart, newEnd) {
       for (let ev of allFetchedEvents) {
@@ -1105,7 +1201,8 @@
         if (result.status === "success") {
           showBanner(`SUCCESS: Your booking for ${room} has been confirmed!`, "success");
           document.getElementById("booking-form").reset();
-          fetchUpcomingEvents(); 
+          await fetchUpcomingEvents();
+          refreshMyBookingsIfActive();
         } else {
           showBanner(`BOOKING FAILED: ${result.message}`, "error");
         }
@@ -1117,13 +1214,13 @@
     });
 
     // ================= DELETE MODAL LOGIC =================
-    function openDeleteModal(eventId, room) {
+    function openDeleteModal(eventId, room, prefillEmail) {
       currentDeleteId = eventId;
       currentDeleteRoom = room;
       
       document.getElementById("modal-desc-text").innerHTML = `To remove this booking from the <strong>${room}</strong> calendar, please enter your Approved Leader Email Address:`;
       
-      document.getElementById("delete-email-input").value = "";
+      document.getElementById("delete-email-input").value = prefillEmail || "";
       document.getElementById("delete-modal").style.display = "flex";
       document.getElementById("delete-email-input").focus();
     }
@@ -1170,7 +1267,8 @@
 
         if (result.status === "success") {
           showBanner("Booking successfully removed from the calendar.", "success");
-          fetchUpcomingEvents();
+          await fetchUpcomingEvents();
+          refreshMyBookingsIfActive();
         } else {
           showBanner(`Removal Failed: ${result.message}`, "error");
         }
