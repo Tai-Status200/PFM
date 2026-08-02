@@ -1308,6 +1308,9 @@
           document.getElementById("booking-form").reset();
           await fetchUpcomingEvents();
           refreshMyBookingsIfActive();
+        } else if (result.status === "pending") {
+          showBanner(`REQUEST SENT: ${result.message}`, "loading");
+          document.getElementById("booking-form").reset();
         } else {
           showBanner(`BOOKING FAILED: ${result.message}`, "error");
         }
