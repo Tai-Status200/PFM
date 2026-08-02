@@ -109,6 +109,16 @@
       background: #eef2ff;
     }
 
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 18px;
+    }
+
+    .header-actions .admin-toggle-btn { margin-top: 0; }
+
     /* CARDS */
     .card {
       background: var(--card-bg);
@@ -496,7 +506,10 @@
       </div>
       <h1>The Power of Faith Ministries International Inc.</h1>
       <p class="subtitle">Facility & Room Reservation System</p>
-      <button type="button" class="admin-toggle-btn" onclick="toggleAdminLogin()">Admin</button>
+      <div class="header-actions">
+        <button type="button" class="admin-toggle-btn" id="install-app-btn" onclick="triggerInstallFlow()" style="display:none;">Install App</button>
+        <button type="button" class="admin-toggle-btn" onclick="toggleAdminLogin()">Admin</button>
+      </div>
     </header>
 
     <!-- STATUS ALERT BANNER -->
@@ -650,7 +663,7 @@
       });
     }
 
-    // ================= PWA: FIRST-VISIT INSTALL PROMPT =================
+    // ================= PWA: INSTALL PROMPT (first-visit banner + persistent header button) =================
     const INSTALL_PROMPT_SEEN_KEY = 'pfm_install_prompt_seen';
     let deferredInstallPrompt = null;
 
@@ -662,25 +675,45 @@
       return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     }
 
+    function showInstallAppButton() {
+      if (isRunningStandalone()) return; // already installed, nothing to offer
+      if (!deferredInstallPrompt && !isIosDevice()) return; // platform can't install anyway
+      document.getElementById('install-app-btn').style.display = 'inline-flex';
+    }
+
+    function hideInstallAppButton() {
+      document.getElementById('install-app-btn').style.display = 'none';
+    }
+
     // Android/Chrome fires this when the site meets install criteria
-    // (manifest + service worker + HTTPS). We capture it and hold onto it
-    // instead of letting the browser show its own prompt immediately, so we
-    // can show our own banner on the visitor's first visit.
+    // (manifest + service worker + HTTPS). We hold onto the event so it can
+    // be used both by the first-visit banner AND the header button, any
+    // time the user wants — not just once.
     window.addEventListener('beforeinstallprompt', function(event) {
       event.preventDefault();
       deferredInstallPrompt = event;
-      maybeShowInstallPrompt('android');
+      showInstallAppButton();
+      maybeShowFirstVisitBanner('android');
     });
 
     window.addEventListener('appinstalled', function() {
       localStorage.setItem(INSTALL_PROMPT_SEEN_KEY, 'true');
       hideInstallPrompt();
+      hideInstallAppButton();
     });
 
-    function maybeShowInstallPrompt(platform) {
-      if (isRunningStandalone()) return; // already installed/running as an app
-      if (localStorage.getItem(INSTALL_PROMPT_SEEN_KEY) === 'true') return; // not first visit
+    // Shows the banner ONLY on a visitor's first visit (respects the
+    // dismissed/seen flag). Used for the automatic pop-up.
+    function maybeShowFirstVisitBanner(platform) {
+      if (isRunningStandalone()) return;
+      if (localStorage.getItem(INSTALL_PROMPT_SEEN_KEY) === 'true') return;
+      renderInstallBanner(platform);
+    }
 
+    // Fills in and shows the banner, ignoring the seen/dismissed flag.
+    // Used by the always-available header button so changing your mind
+    // later still works.
+    function renderInstallBanner(platform) {
       const titleEl = document.getElementById('install-prompt-title');
       const descEl = document.getElementById('install-prompt-desc');
       const actionEl = document.getElementById('install-prompt-action');
@@ -689,13 +722,32 @@
         titleEl.textContent = 'Install this app';
         descEl.textContent = 'Tap the Share icon below, then "Add to Home Screen".';
         actionEl.textContent = 'Got it';
-      } else {
+      } else if (platform === 'android') {
         titleEl.textContent = 'Install this app';
         descEl.textContent = 'Add it to your home screen for quick, one-tap access.';
         actionEl.textContent = 'Install';
+      } else {
+        // Generic fallback: no native prompt currently available (e.g. the
+        // browser already used its one-time offer). The menu option always
+        // works regardless of that.
+        titleEl.textContent = 'Install this app';
+        descEl.textContent = 'Open your browser menu and choose "Install app" or "Add to Home Screen".';
+        actionEl.textContent = 'Got it';
       }
 
       document.getElementById('install-prompt').style.display = 'block';
+    }
+
+    // Called by the persistent "Install App" header button. Works any time,
+    // regardless of whether the first-visit banner was dismissed before.
+    function triggerInstallFlow() {
+      if (deferredInstallPrompt) {
+        handleInstallAction();
+      } else if (isIosDevice()) {
+        renderInstallBanner('ios');
+      } else {
+        renderInstallBanner('generic');
+      }
     }
 
     async function handleInstallAction() {
@@ -720,11 +772,12 @@
       document.getElementById('install-prompt').style.display = 'none';
     }
 
-    // iOS never fires beforeinstallprompt, so show our instructional banner
-    // directly on first visit instead.
+    // iOS never fires beforeinstallprompt, so show the button/banner
+    // ourselves on load instead.
     if (isIosDevice() && !isRunningStandalone()) {
       window.addEventListener('load', function() {
-        maybeShowInstallPrompt('ios');
+        showInstallAppButton();
+        maybeShowFirstVisitBanner('ios');
       });
     }
 
