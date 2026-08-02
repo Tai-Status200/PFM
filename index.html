@@ -18,6 +18,15 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="PFM Bookings">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png">
+
+  <!-- Apply dark/light theme before first paint to avoid a flash of the wrong theme -->
+  <script>
+    (function() {
+      var saved = localStorage.getItem('pfm_theme');
+      var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <style>
     /* MODERN, HIGH-CONTRAST ACCESSIBLE DESIGN SYSTEM */
     :root {
@@ -33,6 +42,49 @@
       --border-color: #cbd5e1;
       --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
       --shadow-lg: 0 10px 25px -5px rgba(15, 43, 92, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+      --surface-2: #f1f5f9;
+      --surface-hover: #eef2ff;
+      --input-bg: #f8fafc;
+      --chip-bg: #e0e7ff;
+      --admin-accent: #7c3aed;
+      --admin-accent-hover: #6d28d9;
+      --admin-badge-bg: #ede9fe;
+      --admin-badge-text: #6d28d9;
+    }
+
+    html[data-theme="dark"] {
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --accent: #60a5fa;
+      --success: #10b981;
+      --danger: #f87171;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --border-color: #334155;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+      --surface-2: #334155;
+      --surface-hover: #1e3a5f;
+      --input-bg: #0f172a;
+      --chip-bg: #1e3a5f;
+      --admin-accent: #a78bfa;
+      --admin-accent-hover: #8b5cf6;
+      --admin-badge-bg: #4c1d95;
+      --admin-badge-text: #ddd6fe;
+    }
+
+    body,
+    .card,
+    header,
+    input,
+    select,
+    .event-item,
+    .modal-content,
+    #install-prompt,
+    .leader-row {
+      transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
     }
 
     body {
@@ -100,7 +152,7 @@
       font-weight: 700;
       color: var(--text-muted);
       cursor: pointer;
-      background: #f1f5f9;
+      background: var(--surface-2);
       border: 2px solid var(--border-color);
       border-radius: 10px;
       padding: 10px 18px;
@@ -110,7 +162,7 @@
     .admin-toggle-btn:hover {
       color: var(--primary);
       border-color: var(--primary);
-      background: #eef2ff;
+      background: var(--surface-hover);
     }
 
     .header-actions {
@@ -130,7 +182,7 @@
       border-radius: 16px;
       box-shadow: var(--shadow-lg);
       margin-bottom: 32px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-color);
     }
 
     h2 {
@@ -138,7 +190,7 @@
       color: var(--primary);
       margin-top: 0;
       margin-bottom: 20px;
-      border-bottom: 2px solid #f1f5f9;
+      border-bottom: 2px solid var(--border-color);
       padding-bottom: 12px;
       display: flex;
       align-items: center;
@@ -165,7 +217,7 @@
       border: 2px solid var(--border-color);
       border-radius: 10px;
       box-sizing: border-box;
-      background-color: #f8fafc;
+      background-color: var(--input-bg);
       color: var(--text-main);
       transition: all 0.2s ease;
     }
@@ -173,7 +225,7 @@
     input:focus, select:focus {
       outline: none;
       border-color: var(--accent);
-      background-color: #ffffff;
+      background-color: var(--card-bg);
       box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
     }
 
@@ -251,16 +303,16 @@
 
     /* UPCOMING EVENTS LIST */
     .event-item {
-      border: 2px solid #e2e8f0;
+      border: 2px solid var(--border-color);
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 16px;
-      background-color: #ffffff;
+      background-color: var(--card-bg);
       transition: border-color 0.2s;
     }
 
     .event-item:hover {
-      border-color: #cbd5e1;
+      border-color: var(--text-muted);
     }
 
     .event-title { 
@@ -284,7 +336,7 @@
 
     .event-room { 
       display: inline-block; 
-      background: #e0e7ff; 
+      background: var(--chip-bg); 
       color: var(--primary);
       padding: 4px 14px; 
       border-radius: 20px; 
@@ -355,15 +407,15 @@
     /* ADMIN PANEL */
     #admin-panel {
       display: none;
-      border-top: 6px solid #7c3aed;
+      border-top: 6px solid var(--admin-accent);
     }
 
-    #admin-panel h2 { color: #7c3aed; }
+    #admin-panel h2 { color: var(--admin-accent); }
 
     .admin-badge {
       display: inline-block;
-      background: #ede9fe;
-      color: #6d28d9;
+      background: var(--admin-badge-bg);
+      color: var(--admin-badge-text);
       padding: 4px 12px;
       border-radius: 20px;
       font-size: 14px;
@@ -372,16 +424,16 @@
     }
 
     .btn-admin {
-      background-color: #7c3aed;
+      background-color: var(--admin-accent);
     }
-    .btn-admin:hover { background-color: #6d28d9; }
+    .btn-admin:hover { background-color: var(--admin-accent-hover); }
 
     .leader-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      border: 2px solid #e2e8f0;
+      border: 2px solid var(--border-color);
       border-radius: 10px;
       padding: 14px 16px;
       margin-bottom: 10px;
@@ -392,7 +444,7 @@
     .leader-row-email { font-weight: 700; color: var(--text-main); }
     .leader-row-access {
       display: inline-block;
-      background: #f1f5f9;
+      background: var(--surface-2);
       color: var(--text-muted);
       padding: 2px 10px;
       border-radius: 12px;
@@ -511,6 +563,11 @@
       <h1>The Power of Faith Ministries International Inc.</h1>
       <p class="subtitle">Facility & Room Reservation System</p>
       <div class="header-actions">
+        <button type="button" class="admin-toggle-btn theme-toggle-btn" id="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle dark mode">
+          <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <span id="theme-toggle-label">Dark Mode</span>
+        </button>
         <button type="button" class="admin-toggle-btn" id="install-app-btn" onclick="triggerInstallFlow()" style="display:none;">Install App</button>
         <button type="button" class="admin-toggle-btn" onclick="toggleAdminLogin()">Admin</button>
       </div>
@@ -668,6 +725,50 @@
   </div>
 
   <script>
+    // ================= DARK / LIGHT MODE TOGGLE =================
+    // The initial theme was already applied by the inline <head> script
+    // (before first paint). This section just wires up the button so it
+    // can be switched afterward, and keeps everything in sync.
+    const THEME_STORAGE_KEY = 'pfm_theme';
+    const THEME_COLOR_LIGHT = '#0f2b5c';
+    const THEME_COLOR_DARK = '#0f172a';
+
+    function getCurrentTheme() {
+      return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute('content', theme === 'dark' ? THEME_COLOR_DARK : THEME_COLOR_LIGHT);
+      }
+
+      const moonIcon = document.getElementById('theme-icon-moon');
+      const sunIcon = document.getElementById('theme-icon-sun');
+      const label = document.getElementById('theme-toggle-label');
+
+      if (theme === 'dark') {
+        moonIcon.style.display = 'none';
+        sunIcon.style.display = 'inline';
+        label.textContent = 'Light Mode';
+      } else {
+        moonIcon.style.display = 'inline';
+        sunIcon.style.display = 'none';
+        label.textContent = 'Dark Mode';
+      }
+    }
+
+    function toggleTheme() {
+      applyTheme(getCurrentTheme() === 'dark' ? 'light' : 'dark');
+    }
+
+    // Sync the button's icon/label with whatever theme the head script
+    // already applied (page may have loaded straight into dark mode).
+    applyTheme(getCurrentTheme());
+
     // ================= PWA: SERVICE WORKER REGISTRATION =================
     // Android requires a registered service worker before it will offer the
     // "Install app" prompt. This one deliberately does NOT cache anything —
