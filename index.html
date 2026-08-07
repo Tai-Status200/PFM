@@ -1254,7 +1254,13 @@
       currentDeleteId = eventId;
       currentDeleteRoom = room;
 
-      document.getElementById("modal-desc-text").innerHTML = `To remove this booking from the <strong>${room}</strong> calendar, please enter your Approved Leader Email Address:`;
+      const modalDesc = document.getElementById("modal-desc-text");
+      modalDesc.textContent = "";
+      modalDesc.appendChild(document.createTextNode("To remove this booking from the "));
+      const roomStrong = document.createElement("strong");
+      roomStrong.textContent = room;
+      modalDesc.appendChild(roomStrong);
+      modalDesc.appendChild(document.createTextNode(" calendar, please enter your Approved Leader Email Address:"));
 
       document.getElementById("delete-email-input").value = prefillEmail || "";
       document.getElementById("delete-modal").style.display = "flex";
