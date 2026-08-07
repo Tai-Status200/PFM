@@ -5,21 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Power of Faith Ministries International Inc. — Room Booking</title>
 
-  <!-- PWA: lets iOS/Android install this as a home-screen app -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f2b5c">
 
-  <!-- Browser tab / bookmark favicons -->
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
 
-  <!-- iOS-specific "Add to Home Screen" support (Safari ignores manifest.json) -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="PFM Bookings">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png">
 
-  <!-- Apply dark/light theme before first paint to avoid a flash of the wrong theme -->
   <script>
     (function() {
       var saved = localStorage.getItem('pfm_theme');
@@ -28,14 +24,13 @@
     })();
   </script>
   <style>
-    /* MODERN, HIGH-CONTRAST ACCESSIBLE DESIGN SYSTEM */
     :root {
-      --primary: #0f2b5c;       /* Deep Church Royal Blue */
+      --primary: #0f2b5c;
       --primary-light: #1e40af;
       --accent: #2563eb;
       --success: #047857;
       --danger: #dc2626;
-      --bg: #f8fafc;             /* Crisp modern light slate background */
+      --bg: #f8fafc;
       --card-bg: #ffffff;
       --text-main: #0f172a;
       --text-muted: #475569;
@@ -102,7 +97,6 @@
       margin: 0 auto;
     }
 
-    /* HEADER & LOGO BRANDING */
     header {
       display: flex;
       flex-direction: column;
@@ -175,7 +169,6 @@
 
     .header-actions .admin-toggle-btn { margin-top: 0; }
 
-    /* CARDS */
     .card {
       background: var(--card-bg);
       padding: 32px;
@@ -197,7 +190,6 @@
       gap: 10px;
     }
 
-    /* FORM INPUTS */
     .form-group {
       margin-bottom: 22px;
     }
@@ -243,7 +235,6 @@
       h1 { font-size: 24px; }
     }
 
-    /* BUTTONS */
     .btn {
       display: inline-block;
       width: 100%;
@@ -272,7 +263,7 @@
       margin-top: 12px;
       border-radius: 8px;
     }
-    
+
     .btn-danger:hover { background-color: #b91c1c; }
 
     .btn-secondary {
@@ -285,7 +276,6 @@
     }
     .btn-secondary:hover { background-color: #475569; }
 
-    /* STATUS BANNERS */
     #status-banner {
       display: none;
       padding: 20px;
@@ -301,7 +291,6 @@
     .banner-success { background-color: #ecfdf5; color: #065f46; border: 2px solid #34d399; }
     .banner-loading { background-color: #f0f9ff; color: #075985; border: 2px solid #38bdf8; }
 
-    /* UPCOMING EVENTS LIST */
     .event-item {
       border: 2px solid var(--border-color);
       border-radius: 12px;
@@ -315,17 +304,17 @@
       border-color: var(--text-muted);
     }
 
-    .event-title { 
-      font-size: 22px; 
-      font-weight: 800; 
-      color: var(--primary); 
+    .event-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--primary);
       margin-top: 6px;
     }
 
-    .event-time { 
-      font-size: 18px; 
-      color: var(--text-muted); 
-      margin: 8px 0; 
+    .event-time {
+      font-size: 18px;
+      color: var(--text-muted);
+      margin: 8px 0;
     }
 
     .event-booked-by {
@@ -334,17 +323,16 @@
       margin: 6px 0 12px 0;
     }
 
-    .event-room { 
-      display: inline-block; 
-      background: var(--chip-bg); 
+    .event-room {
+      display: inline-block;
+      background: var(--chip-bg);
       color: var(--primary);
-      padding: 4px 14px; 
-      border-radius: 20px; 
-      font-weight: 700; 
-      font-size: 16px; 
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 16px;
     }
 
-    /* CUSTOM MODAL STYLING */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -404,7 +392,6 @@
       .modal-actions button { width: 100%; }
     }
 
-    /* ADMIN PANEL */
     #admin-panel {
       display: none;
       border-top: 6px solid var(--admin-accent);
@@ -465,7 +452,6 @@
     }
     .btn-small-danger:hover { background-color: #b91c1c; }
 
-    /* PWA INSTALL PROMPT */
     #install-prompt {
       display: none;
       position: fixed;
@@ -555,7 +541,6 @@
 <body>
 
   <div class="container">
-    <!-- HEADER WITH CHURCH LOGO -->
     <header>
       <div class="logo-container">
         <img src="PFM.png" alt="The Power of Faith Ministries International Inc. Logo" class="church-logo">
@@ -573,10 +558,8 @@
       </div>
     </header>
 
-    <!-- STATUS ALERT BANNER -->
     <div id="status-banner"></div>
 
-    <!-- ADMIN LOGIN (hidden by default) -->
     <div class="card" id="admin-login-card" style="display:none;">
       <h2>Admin Access</h2>
       <p style="color: var(--text-muted); font-size: 16px; margin-top: -8px;">
@@ -589,7 +572,6 @@
       <button type="button" class="btn btn-admin" onclick="attemptAdminLogin()">Unlock Admin Panel</button>
     </div>
 
-    <!-- ADMIN PANEL (only rendered after server confirms admin) -->
     <div class="card" id="admin-panel">
       <span class="admin-badge">Admin Mode</span>
       <h2>Manage Authorized Leaders</h2>
@@ -621,11 +603,10 @@
       </div>
     </div>
 
-    <!-- BOOKING FORM -->
     <div class="card">
       <h2>1. Reserve a Facility</h2>
       <form id="booking-form">
-        
+
         <div class="form-group">
           <label for="room">Select Room / Area:</label>
           <select id="room" required>
@@ -669,7 +650,6 @@
       </form>
     </div>
 
-    <!-- MY BOOKINGS (SELF-SERVICE) -->
     <div class="card">
       <h2>2. My Bookings</h2>
       <p style="color: var(--text-muted); font-size: 17px; margin-top: -8px;">Enter your email to see and manage just your own bookings.</p>
@@ -682,7 +662,6 @@
       <div id="my-bookings-container" style="margin-top: 20px;"></div>
     </div>
 
-    <!-- UPCOMING BOOKINGS LIST -->
     <div class="card">
       <h2>3. Scheduled Bookings</h2>
       <p style="color: var(--text-muted); font-size: 17px; margin-top: -8px;">Review existing reservations for the next 30 days before booking.</p>
@@ -692,7 +671,6 @@
     </div>
   </div>
 
-  <!-- CUSTOM DELETE CONFIRMATION MODAL -->
   <div id="delete-modal" class="modal-overlay">
     <div class="modal-content">
       <h3 class="modal-title">Remove Reservation?</h3>
@@ -709,7 +687,6 @@
     </div>
   </div>
 
-  <!-- FIRST-VISIT PWA INSTALL PROMPT -->
   <div id="install-prompt">
     <div class="install-prompt-body">
       <img src="icons/icon-192.png" alt="" class="install-prompt-icon">
@@ -725,10 +702,6 @@
   </div>
 
   <script>
-    // ================= DARK / LIGHT MODE TOGGLE =================
-    // The initial theme was already applied by the inline <head> script
-    // (before first paint). This section just wires up the button so it
-    // can be switched afterward, and keeps everything in sync.
     const THEME_STORAGE_KEY = 'pfm_theme';
     const THEME_COLOR_LIGHT = '#0f2b5c';
     const THEME_COLOR_DARK = '#0f172a';
@@ -765,14 +738,8 @@
       applyTheme(getCurrentTheme() === 'dark' ? 'light' : 'dark');
     }
 
-    // Sync the button's icon/label with whatever theme the head script
-    // already applied (page may have loaded straight into dark mode).
     applyTheme(getCurrentTheme());
 
-    // ================= PWA: SERVICE WORKER REGISTRATION =================
-    // Android requires a registered service worker before it will offer the
-    // "Install app" prompt. This one deliberately does NOT cache anything —
-    // your bookings data is live and must never be served stale.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
         navigator.serviceWorker.register('sw.js').catch(function(err) {
@@ -781,7 +748,6 @@
       });
     }
 
-    // ================= PWA: INSTALL PROMPT (first-visit banner + persistent header button) =================
     const INSTALL_PROMPT_SEEN_KEY = 'pfm_install_prompt_seen';
     let deferredInstallPrompt = null;
 
@@ -794,8 +760,8 @@
     }
 
     function showInstallAppButton() {
-      if (isRunningStandalone()) return; // already installed, nothing to offer
-      if (!deferredInstallPrompt && !isIosDevice()) return; // platform can't install anyway
+      if (isRunningStandalone()) return;
+      if (!deferredInstallPrompt && !isIosDevice()) return;
       document.getElementById('install-app-btn').style.display = 'inline-flex';
     }
 
@@ -803,10 +769,6 @@
       document.getElementById('install-app-btn').style.display = 'none';
     }
 
-    // Android/Chrome fires this when the site meets install criteria
-    // (manifest + service worker + HTTPS). We hold onto the event so it can
-    // be used both by the first-visit banner AND the header button, any
-    // time the user wants — not just once.
     window.addEventListener('beforeinstallprompt', function(event) {
       event.preventDefault();
       deferredInstallPrompt = event;
@@ -820,17 +782,12 @@
       hideInstallAppButton();
     });
 
-    // Shows the banner ONLY on a visitor's first visit (respects the
-    // dismissed/seen flag). Used for the automatic pop-up.
     function maybeShowFirstVisitBanner(platform) {
       if (isRunningStandalone()) return;
       if (localStorage.getItem(INSTALL_PROMPT_SEEN_KEY) === 'true') return;
       renderInstallBanner(platform);
     }
 
-    // Fills in and shows the banner, ignoring the seen/dismissed flag.
-    // Used by the always-available header button so changing your mind
-    // later still works.
     function renderInstallBanner(platform) {
       const titleEl = document.getElementById('install-prompt-title');
       const descEl = document.getElementById('install-prompt-desc');
@@ -845,9 +802,6 @@
         descEl.textContent = 'Add it to your home screen for quick, one-tap access.';
         actionEl.textContent = 'Install';
       } else {
-        // Generic fallback: no native prompt currently available (e.g. the
-        // browser already used its one-time offer). The menu option always
-        // works regardless of that.
         titleEl.textContent = 'Install this app';
         descEl.textContent = 'Open your browser menu and choose "Install app" or "Add to Home Screen".';
         actionEl.textContent = 'Got it';
@@ -856,8 +810,6 @@
       document.getElementById('install-prompt').style.display = 'block';
     }
 
-    // Called by the persistent "Install App" header button. Works any time,
-    // regardless of whether the first-visit banner was dismissed before.
     function triggerInstallFlow() {
       if (deferredInstallPrompt) {
         handleInstallAction();
@@ -874,7 +826,6 @@
         try {
           await deferredInstallPrompt.userChoice;
         } catch (err) {
-          // no-op — user dismissed the native prompt
         }
         deferredInstallPrompt = null;
       }
@@ -890,8 +841,6 @@
       document.getElementById('install-prompt').style.display = 'none';
     }
 
-    // iOS never fires beforeinstallprompt, so show the button/banner
-    // ourselves on load instead.
     if (isIosDevice() && !isRunningStandalone()) {
       window.addEventListener('load', function() {
         showInstallAppButton();
@@ -899,24 +848,20 @@
       });
     }
 
-    // ================= CONFIGURATION =================
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxt7PtVWgHCVByCDm83EDVekvNLFnvpDd93_0T2TE5y6-IvQkgOYfNZZ-hlnESvnUia/exec"; 
-    
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxt7PtVWgHCVByCDm83EDVekvNLFnvpDd93_0T2TE5y6-IvQkgOYfNZZ-hlnESvnUia/exec";
+
     let allFetchedEvents = [];
     let currentDeleteId = null;
     let currentDeleteRoom = null;
-    let adminEmail = null; // set only after the server confirms admin access
+    let adminEmail = null;
 
-    // Initialize date picker to today's date by default
     document.getElementById('date').min = new Date().toISOString().split("T")[0];
 
-    // Load events as soon as the webpage opens
     window.onload = async function() {
       await fetchUpcomingEvents();
       handleUrlParams();
     };
 
-    // ================= ADMIN LOGIN / PANEL =================
     function toggleAdminLogin() {
       const card = document.getElementById("admin-login-card");
       card.style.display = (card.style.display === "none" || !card.style.display) ? "block" : "none";
@@ -1037,14 +982,13 @@
       }
     }
 
-    // ================= SMART DEEP SCANNER FOR WHO BOOKED IT =================
     function extractBookedBy(ev) {
       const possibleKeys = [
-        'email', 'leaderEmail', 'bookedBy', 'creator', 'organizer', 
+        'email', 'leaderEmail', 'bookedBy', 'creator', 'organizer',
         'user', 'contact', 'leader', 'who', 'author', 'emailAddress',
         'approvedLeader', 'approvedEmail'
       ];
-      
+
       for (let key of possibleKeys) {
         if (ev[key] && typeof ev[key] === 'string' && ev[key].trim() !== '') {
           return ev[key];
@@ -1076,41 +1020,35 @@
       return ev.groupName || ev.group || ev.ministry || null;
     }
 
-    // ================= HELPER: FORMAT EMAIL TO FIRST NAME =================
     function formatNameFromEmail(emailOrName) {
       if (!emailOrName || emailOrName === "Not specified") return "Not specified";
-      
+
       if (!emailOrName.includes("@")) {
         return emailOrName.charAt(0).toUpperCase() + emailOrName.slice(1);
       }
-      
+
       let username = emailOrName.split("@")[0];
       let firstName = username.split(/[._-]/)[0];
       firstName = firstName.replace(/[0-9]+$/, '');
-      
+
       if (!firstName) {
         firstName = username;
       }
-      
+
       return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
     }
 
-    // ================= FETCH & RENDER EVENTS =================
     async function fetchUpcomingEvents() {
       const container = document.getElementById("events-container");
       try {
-        // Cache-busting query param + no-store: prevents the browser from
-        // reusing a redirect cached from a previous deployment (Apps Script
-        // generates a new internal content URL on every redeploy, even
-        // though /exec stays the same — a stale cached redirect 404s).
         const response = await fetch(WEB_APP_URL + "?_=" + Date.now(), { cache: "no-store" });
         const data = await response.json();
 
         if (data.status === "success") {
           const now = new Date();
-          
+
           allFetchedEvents = data.events.filter(ev => new Date(ev.end) > now);
-          
+
           renderEventsList(allFetchedEvents);
         } else {
           container.innerHTML = `<p style="color:var(--danger);">Could not load schedule: ${data.message}</p>`;
@@ -1133,11 +1071,11 @@
       events.forEach(ev => {
         const startDate = new Date(ev.start);
         const endDate = new Date(ev.end);
-        
+
         const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
         const startStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         const endStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        
+
         const rawBookedBy = extractBookedBy(ev) || "Not specified";
         const cleanName = formatNameFromEmail(rawBookedBy);
 
@@ -1154,7 +1092,6 @@
       container.innerHTML = html;
     }
 
-    // ================= MY BOOKINGS (SELF-SERVICE) =================
     function findMyBookings() {
       const emailInput = document.getElementById("my-bookings-email");
       const email = emailInput.value.trim().toLowerCase();
@@ -1173,8 +1110,6 @@
       renderMyBookingsList(mine, email);
     }
 
-    // Called after a delete/refresh so the My Bookings list stays in sync
-    // if someone already has it open, without requiring them to search again.
     function refreshMyBookingsIfActive() {
       const emailInput = document.getElementById("my-bookings-email");
       if (emailInput.value.trim()) {
@@ -1213,10 +1148,6 @@
       container.innerHTML = html;
     }
 
-    // ================= DEEP LINKS FROM CONFIRMATION EMAILS =================
-    // Handles ?myEmail=...&cancelEventId=...&cancelRoom=... so a leader can
-    // land straight on their bookings (or a cancel confirmation) from an
-    // email link, without hunting through the full schedule.
     function handleUrlParams() {
       const params = new URLSearchParams(window.location.search);
       const myEmail = params.get('myEmail');
@@ -1234,7 +1165,6 @@
       }
     }
 
-    // ================= INSTANT OVERLAP CHECK =================
     function checkTimeConflict(room, newStart, newEnd) {
       for (let ev of allFetchedEvents) {
         if (ev.room === room) {
@@ -1242,17 +1172,16 @@
           const existingEnd = new Date(ev.end);
 
           if (newStart < existingEnd && newEnd > existingStart) {
-            return ev; 
+            return ev;
           }
         }
       }
       return null;
     }
 
-    // ================= FORM SUBMISSION =================
     document.getElementById("booking-form").addEventListener("submit", async function(e) {
       e.preventDefault();
-      
+
       const room = document.getElementById("room").value;
       const groupName = document.getElementById("group-name").value.trim();
       const email = document.getElementById("email").value.trim();
@@ -1277,7 +1206,7 @@
       if (conflict) {
         const conflictStart = new Date(conflict.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         const conflictEnd = new Date(conflict.end).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        
+
         showBanner(`CANNOT BOOK: The ${room} is already reserved for "${conflict.title}" from ${conflictStart} to ${conflictEnd}. Please select a different time!`, "error");
         return;
       }
@@ -1321,13 +1250,12 @@
       }
     });
 
-    // ================= DELETE MODAL LOGIC =================
     function openDeleteModal(eventId, room, prefillEmail) {
       currentDeleteId = eventId;
       currentDeleteRoom = room;
-      
+
       document.getElementById("modal-desc-text").innerHTML = `To remove this booking from the <strong>${room}</strong> calendar, please enter your Approved Leader Email Address:`;
-      
+
       document.getElementById("delete-email-input").value = prefillEmail || "";
       document.getElementById("delete-modal").style.display = "flex";
       document.getElementById("delete-email-input").focus();
@@ -1348,13 +1276,13 @@
 
     document.getElementById("delete-form").addEventListener("submit", async function(e) {
       e.preventDefault();
-      
+
       const email = document.getElementById("delete-email-input").value.trim();
       if (!email) return;
 
       const eventId = currentDeleteId;
       const room = currentDeleteRoom;
-      
+
       closeDeleteModal();
       showBanner("Removing booking... please wait.", "loading");
 
@@ -1385,13 +1313,12 @@
       }
     });
 
-    // ================= HELPER: SHOW STATUS BANNER =================
     function showBanner(text, type) {
       const banner = document.getElementById("status-banner");
       banner.textContent = text;
       banner.className = `banner-${type}`;
       banner.style.display = "block";
-      
+
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   </script>
