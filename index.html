@@ -1141,7 +1141,7 @@
             <span class="event-room">${ev.room}</span>
             <div class="event-title">${ev.title}</div>
             <div class="event-time">${dateStr} | <strong>${startStr} - ${endStr}</strong></div>
-            <button class="btn btn-danger" onclick="openDeleteModal('${ev.id}', '${ev.room}', '${email.replace(/'/g, "\\'")}')">Remove Booking</button>
+            <button class="btn btn-danger" onclick="openDeleteModal('${ev.id}', '${ev.room}', '${email.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}')">Remove Booking</button>
           </div>
         `;
       });
