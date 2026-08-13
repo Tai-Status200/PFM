@@ -11,11 +11,11 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
 
-  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="PFM Bookings">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <script>
     (function() {
@@ -564,17 +564,19 @@
     <div class="card" id="admin-login-card" style="display:none;">
       <h2>Admin Access</h2>
       <p style="color: var(--text-muted); font-size: 16px; margin-top: -8px;">
-        Enter your administrator email. Access is verified by the server — entering any other email will simply be rejected.
+        Sign in with the administrator's Google account. This is real Google authentication — the server verifies the signed-in identity, not a typed email.
       </p>
-      <div class="form-group">
-        <label for="admin-email-input">Administrator Email:</label>
-        <input type="email" id="admin-email-input" placeholder="your admin email address">
-      </div>
-      <button type="button" class="btn btn-admin" onclick="attemptAdminLogin()">Unlock Admin Panel</button>
+      <div id="google-signin-button" style="display: flex; justify-content: center; margin-top: 8px;"></div>
+      <p id="google-signin-fallback" style="display:none; color: var(--danger); font-size: 14px; margin-top: 12px;">
+        Google Sign-In didn't load. Check your connection and refresh the page.
+      </p>
     </div>
 
     <div class="card" id="admin-panel">
-      <span class="admin-badge">Admin Mode</span>
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <span class="admin-badge">Admin Mode</span>
+        <button type="button" class="btn-small-danger" onclick="signOutAdmin()">Sign Out</button>
+      </div>
       <h2>Manage Authorized Leaders</h2>
       <p style="color: var(--text-muted); font-size: 16px; margin-top: -8px;">
         Add or remove who is allowed to book rooms — no code editing required.
@@ -854,13 +856,17 @@
     let allFetchedEvents = [];
     let currentDeleteId = null;
     let currentDeleteRoom = null;
-    let adminEmail = null;
+    let adminIdToken = null;
+
+    // Must exactly match GOOGLE_OAUTH_CLIENT_ID in Code.gs
+    const GOOGLE_CLIENT_ID = "REPLACE_WITH_YOUR_CLIENT_ID.apps.googleusercontent.com";
 
     document.getElementById('date').min = new Date().toISOString().split("T")[0];
 
     window.onload = async function() {
       await fetchUpcomingEvents();
       handleUrlParams();
+      initGoogleSignIn();
     };
 
     function toggleAdminLogin() {
@@ -868,34 +874,56 @@
       card.style.display = (card.style.display === "none" || !card.style.display) ? "block" : "none";
     }
 
-    async function attemptAdminLogin() {
-      const email = document.getElementById("admin-email-input").value.trim();
-      if (!email) {
-        showBanner("Enter an email address to continue.", "error");
+    function initGoogleSignIn() {
+      if (!window.google || !google.accounts || !google.accounts.id) {
+        document.getElementById("google-signin-fallback").style.display = "block";
         return;
       }
 
-      showBanner("Checking admin access...", "loading");
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredentialResponse
+      });
+
+      google.accounts.id.renderButton(
+        document.getElementById("google-signin-button"),
+        { theme: "outline", size: "large", text: "signin_with", width: 280 }
+      );
+    }
+
+    async function handleGoogleCredentialResponse(response) {
+      const idToken = response.credential;
+      showBanner("Verifying your Google account...", "loading");
 
       try {
-        const response = await fetch(WEB_APP_URL, {
+        const res = await fetch(WEB_APP_URL, {
           method: "POST",
-          body: JSON.stringify({ action: "LIST_LEADERS", email: email })
+          body: JSON.stringify({ action: "LIST_LEADERS", idToken: idToken })
         });
-        const result = await response.json();
+        const result = await res.json();
 
         if (result.status === "success") {
-          adminEmail = email;
+          adminIdToken = idToken;
           document.getElementById("admin-login-card").style.display = "none";
           document.getElementById("admin-panel").style.display = "block";
           renderLeadersList(result.leaders);
           showBanner("Admin access granted.", "success");
         } else {
-          showBanner(result.message || "Not authorized.", "error");
+          showBanner(result.message || "Not authorized. That Google account is not the administrator.", "error");
         }
       } catch (err) {
         showBanner("Network error while checking admin access.", "error");
       }
+    }
+
+    function signOutAdmin() {
+      adminIdToken = null;
+      document.getElementById("admin-panel").style.display = "none";
+      document.getElementById("admin-login-card").style.display = "none";
+      if (window.google && google.accounts && google.accounts.id) {
+        google.accounts.id.disableAutoSelect();
+      }
+      showBanner("Signed out of admin mode.", "success");
     }
 
     function renderLeadersList(leaders) {
@@ -921,7 +949,7 @@
     }
 
     async function addLeader() {
-      if (!adminEmail) return;
+      if (!adminIdToken) return;
       const targetEmail = document.getElementById("new-leader-email").value.trim();
       const access = document.getElementById("new-leader-access").value;
 
@@ -937,7 +965,7 @@
           method: "POST",
           body: JSON.stringify({
             action: "ADD_LEADER",
-            email: adminEmail,
+            idToken: adminIdToken,
             targetEmail: targetEmail,
             access: access
           })
@@ -957,7 +985,7 @@
     }
 
     async function removeLeader(targetEmail, access) {
-      if (!adminEmail) return;
+      if (!adminIdToken) return;
       showBanner("Removing leader...", "loading");
 
       try {
@@ -965,7 +993,7 @@
           method: "POST",
           body: JSON.stringify({
             action: "REMOVE_LEADER",
-            email: adminEmail,
+            idToken: adminIdToken,
             targetEmail: targetEmail,
             access: access
           })
@@ -1142,7 +1170,7 @@
             <span class="event-room">${ev.room}</span>
             <div class="event-title">${ev.title}</div>
             <div class="event-time">${dateStr} | <strong>${startStr} - ${endStr}</strong></div>
-            <button class="btn btn-danger" onclick="openDeleteModal('${ev.id}', '${ev.room}', '${email.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}')">Remove Booking</button>
+            <button class="btn btn-danger" onclick="openDeleteModal('${ev.id}', '${ev.room}', '${email.replace(/'/g, "\\'")}')">Remove Booking</button>
           </div>
         `;
       });
@@ -1255,13 +1283,7 @@
       currentDeleteId = eventId;
       currentDeleteRoom = room;
 
-      const modalDesc = document.getElementById("modal-desc-text");
-      modalDesc.textContent = "";
-      modalDesc.appendChild(document.createTextNode("To remove this booking from the "));
-      const strong = document.createElement("strong");
-      strong.textContent = room;
-      modalDesc.appendChild(strong);
-      modalDesc.appendChild(document.createTextNode(" calendar, please enter your Approved Leader Email Address:"));
+      document.getElementById("modal-desc-text").innerHTML = `To remove this booking from the <strong>${room}</strong> calendar, please enter your Approved Leader Email Address:`;
 
       document.getElementById("delete-email-input").value = prefillEmail || "";
       document.getElementById("delete-modal").style.display = "flex";
