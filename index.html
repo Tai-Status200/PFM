@@ -639,6 +639,13 @@
 
     <div class="card">
       <h2>1. Reserve a Facility</h2>
+
+      <div id="booking-signin-area" style="margin-bottom: 20px; padding: 16px; background: var(--surface-2); border-radius: 12px;">
+        <p style="margin: 0 0 10px 0; font-size: 16px; color: var(--text-muted); font-weight: 600;">Sign in to verify you're an approved leader before booking:</p>
+        <div id="booking-google-signin-button"></div>
+        <p id="booking-signin-status" style="margin: 10px 0 0 0; font-size: 15px; color: var(--text-muted);"></p>
+      </div>
+
       <form id="booking-form">
 
         <div class="form-group">
@@ -661,7 +668,7 @@
 
         <div class="form-group">
           <label for="email">Your Approved Leader Email:</label>
-          <input type="email" id="email" placeholder="e.g., yourname@gmail.com" required>
+          <input type="email" id="email" placeholder="Sign in with Google above" required readonly style="background: var(--surface-2); cursor: not-allowed;">
         </div>
 
         <div class="form-group">
@@ -680,7 +687,7 @@
           </div>
         </div>
 
-        <button type="submit" class="btn" id="submit-btn">Check Availability & Book</button>
+        <button type="submit" class="btn" id="submit-btn" disabled>Sign In Above to Book</button>
       </form>
     </div>
 
@@ -708,14 +715,12 @@
   <div id="delete-modal" class="modal-overlay">
     <div class="modal-content">
       <h3 class="modal-title">Remove Reservation?</h3>
-      <p class="modal-desc" id="modal-desc-text">To remove this booking from the calendar, please enter your Approved Leader Email Address:</p>
+      <p class="modal-desc" id="modal-desc-text">To remove this booking from the calendar:</p>
+      <p id="delete-signin-status" style="font-size: 15px; color: var(--text-muted); margin-top: -14px; margin-bottom: 18px;"></p>
       <form id="delete-form">
-        <div class="form-group" style="margin-bottom: 0;">
-          <input type="email" id="delete-email-input" placeholder="Enter leader email address..." required>
-        </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Keep Booking</button>
-          <button type="submit" class="btn btn-danger" style="margin-top: 0; padding: 12px 24px; font-size: 18px;">Confirm Removal</button>
+          <button type="submit" class="btn btn-danger" id="confirm-delete-btn" style="margin-top: 0; padding: 12px 24px; font-size: 18px;">Confirm Removal</button>
         </div>
       </form>
     </div>
@@ -889,6 +894,22 @@
     let currentDeleteRoom = null;
     let adminIdToken = null;
 
+    // Verified Google Sign-In state used for BOOKING actions (create/delete).
+    // currentUserEmail is only ever set from a decoded Google ID token —
+    // never from a typed input — and the raw idToken (not just the email)
+    // is what gets sent to the server, which re-verifies it independently.
+    let currentIdToken = null;
+    let currentUserEmail = null;
+
+    // Escapes text before it's inserted via innerHTML, so a group name or
+    // booking title typed by a leader (e.g. "<img src=x onerror=...>")
+    // can't execute as code in every visitor's browser.
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str === null || str === undefined ? "" : String(str);
+      return div.innerHTML;
+    }
+
     // Must exactly match GOOGLE_OAUTH_CLIENT_ID in Code.gs
     const GOOGLE_CLIENT_ID = "718577011837-6pe0t9vvp1a07ibhnld5kcs3s8858uo1.apps.googleusercontent.com";
 
@@ -916,16 +937,59 @@
         callback: handleGoogleCredentialResponse
       });
 
+      // Admin sign-in button (existing)
       google.accounts.id.renderButton(
         document.getElementById("google-signin-button"),
         { theme: "outline", size: "large", text: "signin_with", width: 280 }
       );
+
+      // Booking sign-in button — same underlying identity/callback, just a
+      // second visible button so leaders can sign in without opening the
+      // Admin panel first.
+      const bookingBtnEl = document.getElementById("booking-google-signin-button");
+      if (bookingBtnEl) {
+        google.accounts.id.renderButton(
+          bookingBtnEl,
+          { theme: "outline", size: "large", text: "signin_with", width: 280 }
+        );
+      }
+    }
+
+    // Decodes the email out of a Google ID token FOR DISPLAY ONLY. This is
+    // not a security check — the token's signature is verified server-side
+    // (verifyGoogleIdToken in Code.gs) on every request that actually needs
+    // to trust the identity. This client-side decode just lets the page show
+    // "Signed in as ___" without an extra round trip.
+    function decodeJwtEmailForDisplay(idToken) {
+      try {
+        const payloadPart = idToken.split(".")[1];
+        const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+        const decoded = JSON.parse(atob(normalized));
+        return (decoded.email || "").toLowerCase().trim();
+      } catch (err) {
+        return "";
+      }
     }
 
     async function handleGoogleCredentialResponse(response) {
       const idToken = response.credential;
-      showBanner("Verifying your Google account...", "loading");
+      const displayEmail = decodeJwtEmailForDisplay(idToken);
 
+      // Always update the booking sign-in state — any successful Google
+      // sign-in, from either button, unlocks the booking form. The server
+      // still independently verifies this token before trusting it.
+      currentIdToken = idToken;
+      currentUserEmail = displayEmail;
+      applyBookingSignedInState(displayEmail);
+
+      // Only attempt (and only report success/failure of) admin
+      // verification if the Admin panel is the thing currently open —
+      // otherwise a regular leader signing in just to book a room would
+      // see a confusing "Not authorized" admin error.
+      const adminCardOpen = document.getElementById("admin-login-card").style.display === "block";
+      if (!adminCardOpen) return;
+
+      showBanner("Verifying your Google account...", "loading");
       try {
         const res = await fetch(WEB_APP_URL, {
           method: "POST",
@@ -944,6 +1008,23 @@
         }
       } catch (err) {
         showBanner("Network error while checking admin access.", "error");
+      }
+    }
+
+    function applyBookingSignedInState(email) {
+      const emailField = document.getElementById("email");
+      const statusEl = document.getElementById("booking-signin-status");
+      const submitBtn = document.getElementById("submit-btn");
+      const deleteStatusEl = document.getElementById("delete-signin-status");
+
+      if (emailField) emailField.value = email;
+      if (statusEl) statusEl.textContent = email ? ("Signed in as " + email) : "";
+      if (submitBtn) {
+        submitBtn.disabled = !email;
+        submitBtn.textContent = email ? "Check Availability & Book" : "Sign In Above to Book";
+      }
+      if (deleteStatusEl) {
+        deleteStatusEl.textContent = email ? ("Confirming as " + email) : "Please sign in above before removing a booking.";
       }
     }
 
@@ -969,8 +1050,8 @@
         html += `
           <div class="leader-row">
             <div class="leader-row-info">
-              <span class="leader-row-email">${l.email}</span>
-              <span class="leader-row-access">${l.access}</span>
+              <span class="leader-row-email">${escapeHtml(l.email)}</span>
+              <span class="leader-row-access">${escapeHtml(l.access)}</span>
             </div>
             <button class="btn-small-danger" onclick="removeLeader('${l.email}', '${l.access}')">Remove</button>
           </div>
@@ -1156,7 +1237,7 @@
         html += `
           <div class="room-group">
             <div class="room-group-header">
-              <h3>${roomName}</h3>
+              <h3>${escapeHtml(roomName)}</h3>
               <span class="room-group-count">${roomEvents.length} booking${roomEvents.length === 1 ? '' : 's'}</span>
             </div>
         `;
@@ -1174,9 +1255,9 @@
 
           html += `
             <div class="event-item">
-              <div class="event-title">${ev.title}</div>
+              <div class="event-title">${escapeHtml(ev.title)}</div>
               <div class="event-time">${dateStr} | <strong>${startStr} - ${endStr}</strong></div>
-              <div class="event-booked-by">Booked by: <strong>${cleanName}</strong></div>
+              <div class="event-booked-by">Booked by: <strong>${escapeHtml(cleanName)}</strong></div>
               <button class="btn btn-danger" onclick="openDeleteModal('${ev.id}', '${ev.room}')">Remove Booking</button>
             </div>
           `;
@@ -1234,8 +1315,8 @@
 
         html += `
           <div class="event-item">
-            <span class="event-room">${ev.room}</span>
-            <div class="event-title">${ev.title}</div>
+            <span class="event-room">${escapeHtml(ev.room)}</span>
+            <div class="event-title">${escapeHtml(ev.title)}</div>
             <div class="event-time">${dateStr} | <strong>${startStr} - ${endStr}</strong></div>
             <button class="btn btn-danger" onclick="openDeleteModal('${ev.id}', '${ev.room}', '${email.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}')">Remove Booking</button>
           </div>
@@ -1278,9 +1359,14 @@
     document.getElementById("booking-form").addEventListener("submit", async function(e) {
       e.preventDefault();
 
+      if (!currentIdToken || !currentUserEmail) {
+        showBanner("Please sign in with Google above before booking.", "error");
+        return;
+      }
+
       const room = document.getElementById("room").value;
       const groupName = document.getElementById("group-name").value.trim();
-      const email = document.getElementById("email").value.trim();
+      const email = currentUserEmail; // verified identity, not a typed field
       const date = document.getElementById("date").value;
       const startTime = document.getElementById("start-time").value;
       const endTime = document.getElementById("end-time").value;
@@ -1316,6 +1402,7 @@
           room: room,
           groupName: groupName,
           email: email,
+          idToken: currentIdToken,
           date: date,
           startTime: startTime,
           endTime: endTime
@@ -1331,18 +1418,20 @@
         if (result.status === "success") {
           showBanner(`SUCCESS: Your booking for ${room} has been confirmed!`, "success");
           document.getElementById("booking-form").reset();
+          applyBookingSignedInState(currentUserEmail);
           await fetchUpcomingEvents();
           refreshMyBookingsIfActive();
         } else if (result.status === "pending") {
           showBanner(`REQUEST SENT: ${result.message}`, "loading");
           document.getElementById("booking-form").reset();
+          applyBookingSignedInState(currentUserEmail);
         } else {
           showBanner(`BOOKING FAILED: ${result.message}`, "error");
         }
       } catch (err) {
         showBanner("Network Error: Could not connect to the booking server.", "error");
       } finally {
-        document.getElementById("submit-btn").disabled = false;
+        document.getElementById("submit-btn").disabled = !currentIdToken;
       }
     });
 
@@ -1356,11 +1445,10 @@
       const strongRoom = document.createElement("strong");
       strongRoom.textContent = room || "";
       modalDesc.appendChild(strongRoom);
-      modalDesc.appendChild(document.createTextNode(" calendar, please enter your Approved Leader Email Address:"));
+      modalDesc.appendChild(document.createTextNode(" calendar:"));
 
-      document.getElementById("delete-email-input").value = prefillEmail || "";
+      applyBookingSignedInState(currentUserEmail || "");
       document.getElementById("delete-modal").style.display = "flex";
-      document.getElementById("delete-email-input").focus();
     }
 
     function closeDeleteModal() {
@@ -1379,8 +1467,10 @@
     document.getElementById("delete-form").addEventListener("submit", async function(e) {
       e.preventDefault();
 
-      const email = document.getElementById("delete-email-input").value.trim();
-      if (!email) return;
+      if (!currentIdToken || !currentUserEmail) {
+        showBanner("Please sign in with Google before removing a booking.", "error");
+        return;
+      }
 
       const eventId = currentDeleteId;
       const room = currentDeleteRoom;
@@ -1393,7 +1483,8 @@
           action: "DELETE",
           eventId: eventId,
           room: room,
-          email: email
+          email: currentUserEmail,
+          idToken: currentIdToken
         };
 
         const response = await fetch(WEB_APP_URL, {
