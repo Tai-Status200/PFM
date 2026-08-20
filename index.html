@@ -335,6 +335,36 @@
       font-size: 16px;
     }
 
+    .room-group {
+      margin-bottom: 28px;
+    }
+
+    .room-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 16px;
+      background: var(--primary);
+      color: #ffffff;
+      border-radius: 10px;
+      margin-bottom: 14px;
+    }
+
+    .room-group-header h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .room-group-count {
+      background: rgba(255, 255, 255, 0.22);
+      padding: 3px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
     .modal-overlay {
       display: none;
       position: fixed;
@@ -1088,6 +1118,15 @@
       }
     }
 
+    const ROOM_ORDER = [
+      "Main Church Building",
+      "Children Church",
+      "Music Institute",
+      "Upper Room 1",
+      "Upper Room 2",
+      "Upper Room 3"
+    ];
+
     function renderEventsList(events) {
       const container = document.getElementById("events-container");
       if (events.length === 0) {
@@ -1097,28 +1136,55 @@
 
       events.sort((a, b) => new Date(a.start) - new Date(b.start));
 
-      let html = "";
+      // Group events by room
+      const grouped = {};
       events.forEach(ev => {
-        const startDate = new Date(ev.start);
-        const endDate = new Date(ev.end);
+        const roomKey = ev.room || "Other";
+        if (!grouped[roomKey]) grouped[roomKey] = [];
+        grouped[roomKey].push(ev);
+      });
 
-        const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-        const startStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        const endStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      // Room order: known rooms first (in ROOM_ORDER), then any unexpected room names after
+      const orderedRoomNames = ROOM_ORDER.filter(r => grouped[r]).concat(
+        Object.keys(grouped).filter(r => !ROOM_ORDER.includes(r))
+      );
 
-        const rawBookedBy = extractBookedBy(ev) || "Not specified";
-        const cleanName = formatNameFromEmail(rawBookedBy);
+      let html = "";
+      orderedRoomNames.forEach(roomName => {
+        const roomEvents = grouped[roomName];
 
         html += `
-          <div class="event-item">
-            <span class="event-room">${ev.room}</span>
-            <div class="event-title">${ev.title}</div>
-            <div class="event-time">${dateStr} | <strong>${startStr} - ${endStr}</strong></div>
-            <div class="event-booked-by">Booked by: <strong>${cleanName}</strong></div>
-            <button class="btn btn-danger" onclick="openDeleteModal('${ev.id}', '${ev.room}')">Remove Booking</button>
-          </div>
+          <div class="room-group">
+            <div class="room-group-header">
+              <h3>${roomName}</h3>
+              <span class="room-group-count">${roomEvents.length} booking${roomEvents.length === 1 ? '' : 's'}</span>
+            </div>
         `;
+
+        roomEvents.forEach(ev => {
+          const startDate = new Date(ev.start);
+          const endDate = new Date(ev.end);
+
+          const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+          const startStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          const endStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+          const rawBookedBy = extractBookedBy(ev) || "Not specified";
+          const cleanName = formatNameFromEmail(rawBookedBy);
+
+          html += `
+            <div class="event-item">
+              <div class="event-title">${ev.title}</div>
+              <div class="event-time">${dateStr} | <strong>${startStr} - ${endStr}</strong></div>
+              <div class="event-booked-by">Booked by: <strong>${cleanName}</strong></div>
+              <button class="btn btn-danger" onclick="openDeleteModal('${ev.id}', '${ev.room}')">Remove Booking</button>
+            </div>
+          `;
+        });
+
+        html += `</div>`; // close room-group
       });
+
       container.innerHTML = html;
     }
 
