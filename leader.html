@@ -894,23 +894,15 @@
     let currentDeleteRoom = null;
     let adminIdToken = null;
 
-    // Verified Google Sign-In state used for BOOKING actions (create/delete).
-    // currentUserEmail is only ever set from a decoded Google ID token —
-    // never from a typed input — and the raw idToken (not just the email)
-    // is what gets sent to the server, which re-verifies it independently.
     let currentIdToken = null;
     let currentUserEmail = null;
 
-    // Escapes text before it's inserted via innerHTML, so a group name or
-    // booking title typed by a leader (e.g. "<img src=x onerror=...>")
-    // can't execute as code in every visitor's browser.
     function escapeHtml(str) {
       const div = document.createElement("div");
       div.textContent = str === null || str === undefined ? "" : String(str);
       return div.innerHTML;
     }
 
-    // Must exactly match GOOGLE_OAUTH_CLIENT_ID in Code.gs
     const GOOGLE_CLIENT_ID = "718577011837-6pe0t9vvp1a07ibhnld5kcs3s8858uo1.apps.googleusercontent.com";
 
     document.getElementById('date').min = new Date().toISOString().split("T")[0];
@@ -934,18 +926,15 @@
 
       google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleCredentialResponse
+        callback: handleGoogleCredentialResponse,
+        use_fedcm_for_prompt: false
       });
 
-      // Admin sign-in button (existing)
       google.accounts.id.renderButton(
         document.getElementById("google-signin-button"),
         { theme: "outline", size: "large", text: "signin_with", width: 280 }
       );
 
-      // Booking sign-in button — same underlying identity/callback, just a
-      // second visible button so leaders can sign in without opening the
-      // Admin panel first.
       const bookingBtnEl = document.getElementById("booking-google-signin-button");
       if (bookingBtnEl) {
         google.accounts.id.renderButton(
@@ -955,11 +944,6 @@
       }
     }
 
-    // Decodes the email out of a Google ID token FOR DISPLAY ONLY. This is
-    // not a security check — the token's signature is verified server-side
-    // (verifyGoogleIdToken in Code.gs) on every request that actually needs
-    // to trust the identity. This client-side decode just lets the page show
-    // "Signed in as ___" without an extra round trip.
     function decodeJwtEmailForDisplay(idToken) {
       try {
         const payloadPart = idToken.split(".")[1];
@@ -975,17 +959,10 @@
       const idToken = response.credential;
       const displayEmail = decodeJwtEmailForDisplay(idToken);
 
-      // Always update the booking sign-in state — any successful Google
-      // sign-in, from either button, unlocks the booking form. The server
-      // still independently verifies this token before trusting it.
       currentIdToken = idToken;
       currentUserEmail = displayEmail;
       applyBookingSignedInState(displayEmail);
 
-      // Only attempt (and only report success/failure of) admin
-      // verification if the Admin panel is the thing currently open —
-      // otherwise a regular leader signing in just to book a room would
-      // see a confusing "Not authorized" admin error.
       const adminCardOpen = document.getElementById("admin-login-card").style.display === "block";
       if (!adminCardOpen) return;
 
@@ -1202,12 +1179,6 @@
       }
     }
 
-    // Google Calendar occasionally takes a couple of seconds to make a
-    // just-created event visible to a read that happens right after — this
-    // is a real, known lag on Google's side, not a bug in this code. Rather
-    // than show the person a stale list, we quietly re-check a few times
-    // over a few seconds until the new booking actually appears (or we give
-    // up gracefully after ~6 seconds and let the normal 45s cache catch it).
     async function fetchUpcomingEventsUntilVisible(room, groupName, startTimeIso) {
       const matches = (events) => events.some(ev =>
         ev.room === room &&
@@ -1218,14 +1189,12 @@
       let events = await fetchUpcomingEvents();
       if (matches(events)) return;
 
-      const delays = [1200, 1800, 2500]; // total ~5.5s of polling, spaced out
+      const delays = [1200, 1800, 2500];
       for (const delay of delays) {
         await new Promise(r => setTimeout(r, delay));
         events = await fetchUpcomingEvents();
         if (matches(events)) return;
       }
-      // If it still isn't visible after all retries, leave the last fetched
-      // state on screen — it will appear on the next natural refresh.
     }
 
     const ROOM_ORDER = [
@@ -1246,7 +1215,6 @@
 
       events.sort((a, b) => new Date(a.start) - new Date(b.start));
 
-      // Group events by room
       const grouped = {};
       events.forEach(ev => {
         const roomKey = ev.room || "Other";
@@ -1254,7 +1222,6 @@
         grouped[roomKey].push(ev);
       });
 
-      // Room order: known rooms first (in ROOM_ORDER), then any unexpected room names after
       const orderedRoomNames = ROOM_ORDER.filter(r => grouped[r]).concat(
         Object.keys(grouped).filter(r => !ROOM_ORDER.includes(r))
       );
@@ -1292,7 +1259,7 @@
           `;
         });
 
-        html += `</div>`; // close room-group
+        html += `</div>`;
       });
 
       container.innerHTML = html;
@@ -1395,7 +1362,7 @@
 
       const room = document.getElementById("room").value;
       const groupName = document.getElementById("group-name").value.trim();
-      const email = currentUserEmail; // verified identity, not a typed field
+      const email = currentUserEmail;
       const date = document.getElementById("date").value;
       const startTime = document.getElementById("start-time").value;
       const endTime = document.getElementById("end-time").value;
