@@ -7,6 +7,7 @@
 
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f2b5c">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self' 'unsafe-inline'; frame-src https://accounts.google.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com; img-src 'self' data:; base-uri 'self'; form-action 'self';">
 
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
@@ -621,18 +622,50 @@
         <label for="new-leader-access">Access Level:</label>
         <select id="new-leader-access">
           <option value="ALL">ALL — General leader (all non-restricted rooms)</option>
-          <option value="Main Church Building">Main Church Building only (restricted room)</option>
-          <option value="Children Church">Children Church only</option>
-          <option value="Music Institute">Music Institute only</option>
-          <option value="Upper Room 1">Upper Room 1 only</option>
-          <option value="Upper Room 2">Upper Room 2 only</option>
-          <option value="Upper Room 3">Upper Room 3 only</option>
         </select>
       </div>
       <button type="button" class="btn btn-admin" onclick="addLeader()">Add Leader</button>
 
       <h2 style="margin-top: 32px;">Current Authorized Leaders</h2>
       <div id="leaders-list-container">
+        <p>Loading...</p>
+      </div>
+
+      <h2 style="margin-top: 32px;">Manage Rooms</h2>
+      <p style="color: var(--text-muted); font-size: 16px; margin-top: -8px;">
+        Add, remove, or mark rooms as restricted (requiring pastor approval) — no code editing required.
+      </p>
+      <div class="form-group">
+        <label for="new-room-name">Room Name:</label>
+        <input type="text" id="new-room-name" placeholder="e.g., Fellowship Hall">
+      </div>
+      <div class="form-group">
+        <label for="new-room-calendar-id">Google Calendar ID:</label>
+        <input type="text" id="new-room-calendar-id" placeholder="xxxxx@group.calendar.google.com">
+      </div>
+      <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+        <input type="checkbox" id="new-room-restricted" style="width: auto; padding: 0;">
+        <label for="new-room-restricted" style="margin-bottom: 0; font-size: 17px;">Restricted (requires per-room access grant / pastor approval)</label>
+      </div>
+      <button type="button" class="btn btn-admin" onclick="addRoom()">Add Room</button>
+
+      <h3 style="margin-top: 28px; font-size: 18px; color: var(--text-main);">Current Rooms</h3>
+      <div id="rooms-list-container">
+        <p>Loading...</p>
+      </div>
+
+      <h2 style="margin-top: 32px;">Manage Admins</h2>
+      <p style="color: var(--text-muted); font-size: 16px; margin-top: -8px;">
+        Anyone listed here can sign into this Admin panel. At least one admin must always remain.
+      </p>
+      <div class="form-group">
+        <label for="new-admin-email">Admin's Email:</label>
+        <input type="email" id="new-admin-email" placeholder="admin@example.com">
+      </div>
+      <button type="button" class="btn btn-admin" onclick="addAdmin()">Add Admin</button>
+
+      <h3 style="margin-top: 28px; font-size: 18px; color: var(--text-main);">Current Admins</h3>
+      <div id="admins-list-container">
         <p>Loading...</p>
       </div>
     </div>
@@ -651,13 +684,7 @@
         <div class="form-group">
           <label for="room">Select Room / Area:</label>
           <select id="room" required>
-            <option value="" disabled selected>-- Touch here to choose a room --</option>
-            <option value="Main Church Building">Main Church Building</option>
-            <option value="Children Church">Children Church</option>
-            <option value="Music Institute">Music Institute</option>
-            <option value="Upper Room 1">Upper Room 1</option>
-            <option value="Upper Room 2">Upper Room 2</option>
-            <option value="Upper Room 3">Upper Room 3</option>
+            <option value="" disabled selected>Loading rooms...</option>
           </select>
         </div>
 
@@ -685,6 +712,16 @@
             <label for="end-time">End Time:</label>
             <input type="time" id="end-time" required>
           </div>
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <input type="checkbox" id="recur-checkbox" style="width: auto; padding: 0;" onchange="toggleRecurWeeksField()">
+          <label for="recur-checkbox" style="margin-bottom: 0; font-size: 17px;">Repeat weekly</label>
+        </div>
+        <div class="form-group" id="recur-weeks-group" style="display: none;">
+          <label for="recur-weeks">Number of weeks (including this one):</label>
+          <input type="number" id="recur-weeks" min="2" max="12" value="4">
+          <p style="color: var(--text-muted); font-size: 14px; margin: 6px 0 0 0;">Creates one booking per week, same day/time. All weeks are checked for conflicts before anything is booked.</p>
         </div>
 
         <button type="submit" class="btn" id="submit-btn" disabled>Sign In Above to Book</button>
@@ -911,7 +948,43 @@
       await fetchUpcomingEvents();
       handleUrlParams();
       initGoogleSignIn();
+      startAutoRefresh();
     };
+
+    // ================= AUTO-REFRESHING SCHEDULE =================
+    // Keeps the schedule (and My Bookings, if open) current without a
+    // manual reload. Paused while the tab isn't visible, both to save the
+    // Apps Script quota and because there's no point polling a background
+    // tab nobody is looking at.
+    const AUTO_REFRESH_INTERVAL_MS = 75000; // 75 seconds
+    let autoRefreshTimer = null;
+
+    function startAutoRefresh() {
+      if (autoRefreshTimer) return;
+      autoRefreshTimer = setInterval(async function() {
+        if (document.hidden) return;
+        await fetchUpcomingEvents();
+        refreshMyBookingsIfActive();
+      }, AUTO_REFRESH_INTERVAL_MS);
+    }
+
+    function stopAutoRefresh() {
+      if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+      }
+    }
+
+    document.addEventListener("visibilitychange", function() {
+      if (document.hidden) {
+        stopAutoRefresh();
+      } else {
+        startAutoRefresh();
+        // Catch up immediately on return, rather than waiting out a full
+        // interval — the schedule may be stale after being away a while.
+        fetchUpcomingEvents().then(refreshMyBookingsIfActive);
+      }
+    });
 
     function toggleAdminLogin() {
       const card = document.getElementById("admin-login-card");
@@ -979,6 +1052,8 @@
           document.getElementById("admin-login-card").style.display = "none";
           document.getElementById("admin-panel").style.display = "block";
           renderLeadersList(result.leaders);
+          loadRoomsForAdmin();
+          loadAdminsForAdmin();
           showBanner("Admin access granted.", "success");
         } else {
           showBanner(result.message || "Not authorized. That Google account is not the administrator.", "error");
@@ -1100,6 +1175,198 @@
       }
     }
 
+    // ---------- Rooms management ----------
+
+    function renderRoomsList(rooms) {
+      const container = document.getElementById("rooms-list-container");
+      if (!rooms || rooms.length === 0) {
+        container.innerHTML = "<p style='color: var(--text-muted);'>No rooms configured yet.</p>";
+        return;
+      }
+
+      let html = "";
+      rooms.forEach(function(r) {
+        html += `
+          <div class="leader-row">
+            <div class="leader-row-info">
+              <span class="leader-row-email">${escapeHtml(r.name)}</span>
+              <span class="leader-row-access">${r.restricted ? "Restricted" : "Open"}</span>
+            </div>
+            <button class="btn-small-danger" onclick="removeRoom('${r.name.replace(/'/g, "\\'")}')">Remove</button>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    async function loadRoomsForAdmin() {
+      if (!adminIdToken) return;
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "LIST_ROOMS", idToken: adminIdToken })
+        });
+        const result = await response.json();
+        if (result.status === "success") renderRoomsList(result.rooms);
+      } catch (err) {
+        console.log("Failed to load rooms:", err);
+      }
+    }
+
+    async function addRoom() {
+      if (!adminIdToken) return;
+      const roomName = document.getElementById("new-room-name").value.trim();
+      const calendarId = document.getElementById("new-room-calendar-id").value.trim();
+      const restricted = document.getElementById("new-room-restricted").checked;
+
+      if (!roomName || !calendarId) {
+        showBanner("Enter both a room name and a calendar ID.", "error");
+        return;
+      }
+
+      showBanner("Adding room...", "loading");
+
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "ADD_ROOM",
+            idToken: adminIdToken,
+            roomName: roomName,
+            calendarId: calendarId,
+            restricted: restricted
+          })
+        });
+        const result = await response.json();
+
+        if (result.status === "success") {
+          showBanner("Room added.", "success");
+          document.getElementById("new-room-name").value = "";
+          document.getElementById("new-room-calendar-id").value = "";
+          document.getElementById("new-room-restricted").checked = false;
+          renderRoomsList(result.rooms);
+          populateRoomDropdowns(result.rooms.map(function(r) { return r.name; }));
+        } else {
+          showBanner(result.message || "Could not add room.", "error");
+        }
+      } catch (err) {
+        showBanner("Network error while adding room.", "error");
+      }
+    }
+
+    async function removeRoom(roomName) {
+      if (!adminIdToken) return;
+      showBanner("Removing room...", "loading");
+
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "REMOVE_ROOM", idToken: adminIdToken, roomName: roomName })
+        });
+        const result = await response.json();
+
+        if (result.status === "success") {
+          showBanner("Room removed.", "success");
+          renderRoomsList(result.rooms);
+          populateRoomDropdowns(result.rooms.map(function(r) { return r.name; }));
+        } else {
+          showBanner(result.message || "Could not remove room.", "error");
+        }
+      } catch (err) {
+        showBanner("Network error while removing room.", "error");
+      }
+    }
+
+    // ---------- Admins management ----------
+
+    function renderAdminsList(admins) {
+      const container = document.getElementById("admins-list-container");
+      if (!admins || admins.length === 0) {
+        container.innerHTML = "<p style='color: var(--text-muted);'>No admins configured yet.</p>";
+        return;
+      }
+
+      let html = "";
+      admins.forEach(function(a) {
+        html += `
+          <div class="leader-row">
+            <div class="leader-row-info">
+              <span class="leader-row-email">${escapeHtml(a.email)}</span>
+            </div>
+            <button class="btn-small-danger" onclick="removeAdmin('${a.email.replace(/'/g, "\\'")}')">Remove</button>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    async function loadAdminsForAdmin() {
+      if (!adminIdToken) return;
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "LIST_ADMINS", idToken: adminIdToken })
+        });
+        const result = await response.json();
+        if (result.status === "success") renderAdminsList(result.admins);
+      } catch (err) {
+        console.log("Failed to load admins:", err);
+      }
+    }
+
+    async function addAdmin() {
+      if (!adminIdToken) return;
+      const targetEmail = document.getElementById("new-admin-email").value.trim();
+
+      if (!targetEmail) {
+        showBanner("Enter the new admin's email address.", "error");
+        return;
+      }
+
+      showBanner("Adding admin...", "loading");
+
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "ADD_ADMIN", idToken: adminIdToken, targetEmail: targetEmail })
+        });
+        const result = await response.json();
+
+        if (result.status === "success") {
+          showBanner("Admin added.", "success");
+          document.getElementById("new-admin-email").value = "";
+          renderAdminsList(result.admins);
+        } else {
+          showBanner(result.message || "Could not add admin.", "error");
+        }
+      } catch (err) {
+        showBanner("Network error while adding admin.", "error");
+      }
+    }
+
+    async function removeAdmin(targetEmail) {
+      if (!adminIdToken) return;
+      showBanner("Removing admin...", "loading");
+
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "REMOVE_ADMIN", idToken: adminIdToken, targetEmail: targetEmail })
+        });
+        const result = await response.json();
+
+        if (result.status === "success") {
+          showBanner("Admin removed.", "success");
+          renderAdminsList(result.admins);
+        } else {
+          showBanner(result.message || "Could not remove admin.", "error");
+        }
+      } catch (err) {
+        showBanner("Network error while removing admin.", "error");
+      }
+    }
+
+
     function extractBookedBy(ev) {
       const possibleKeys = [
         'email', 'leaderEmail', 'bookedBy', 'creator', 'organizer',
@@ -1156,6 +1423,31 @@
       return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
     }
 
+    let knownRoomNames = [];
+
+    function populateRoomDropdowns(roomNames) {
+      if (!roomNames || roomNames.length === 0) return;
+      knownRoomNames = roomNames;
+
+      const bookingSelect = document.getElementById("room");
+      if (bookingSelect) {
+        const previousValue = bookingSelect.value;
+        bookingSelect.innerHTML = '<option value="" disabled' + (previousValue ? '' : ' selected') + '>-- Touch here to choose a room --</option>' +
+          roomNames.map(function(name) {
+            return '<option value="' + escapeHtml(name) + '"' + (name === previousValue ? ' selected' : '') + '>' + escapeHtml(name) + '</option>';
+          }).join('');
+      }
+
+      const accessSelect = document.getElementById("new-leader-access");
+      if (accessSelect) {
+        const previousAccessValue = accessSelect.value;
+        accessSelect.innerHTML = '<option value="ALL">ALL — General leader (all non-restricted rooms)</option>' +
+          roomNames.map(function(name) {
+            return '<option value="' + escapeHtml(name) + '"' + (name === previousAccessValue ? ' selected' : '') + '>' + escapeHtml(name) + ' only</option>';
+          }).join('');
+      }
+    }
+
     async function fetchUpcomingEvents() {
       const container = document.getElementById("events-container");
       try {
@@ -1166,6 +1458,7 @@
           const now = new Date();
 
           allFetchedEvents = data.events.filter(ev => new Date(ev.end) > now);
+          populateRoomDropdowns(data.rooms);
 
           renderEventsList(allFetchedEvents);
           return allFetchedEvents;
@@ -1352,6 +1645,11 @@
       return null;
     }
 
+    function toggleRecurWeeksField() {
+      const checked = document.getElementById("recur-checkbox").checked;
+      document.getElementById("recur-weeks-group").style.display = checked ? "block" : "none";
+    }
+
     document.getElementById("booking-form").addEventListener("submit", async function(e) {
       e.preventDefault();
 
@@ -1380,13 +1678,25 @@
         return;
       }
 
-      const conflict = checkTimeConflict(room, newStart, newEnd);
-      if (conflict) {
-        const conflictStart = new Date(conflict.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        const conflictEnd = new Date(conflict.end).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      const recurChecked = document.getElementById("recur-checkbox").checked;
+      const recurWeeks = recurChecked ? Math.max(2, Math.min(12, parseInt(document.getElementById("recur-weeks").value, 10) || 4)) : 1;
 
-        showBanner(`CANNOT BOOK: The ${room} is already reserved for "${conflict.title}" from ${conflictStart} to ${conflictEnd}. Please select a different time!`, "error");
-        return;
+      // Client-side pre-check every occurrence in the series (not just the
+      // first) so a conflict two or three weeks out is caught immediately,
+      // before making a round trip to the server.
+      const weekMs = 7 * 24 * 60 * 60 * 1000;
+      for (let i = 0; i < recurWeeks; i++) {
+        const occStart = new Date(newStart.getTime() + i * weekMs);
+        const occEnd = new Date(newEnd.getTime() + i * weekMs);
+        const conflict = checkTimeConflict(room, occStart, occEnd);
+        if (conflict) {
+          const conflictStart = new Date(conflict.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          const conflictEnd = new Date(conflict.end).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          const conflictDateLabel = recurWeeks > 1 ? ` on ${occStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}` : '';
+
+          showBanner(`CANNOT BOOK: The ${room} is already reserved${conflictDateLabel} for "${conflict.title}" from ${conflictStart} to ${conflictEnd}. Please select a different time!`, "error");
+          return;
+        }
       }
 
       showBanner("Sending your booking request to the server... please wait.", "loading");
@@ -1401,7 +1711,8 @@
           idToken: currentIdToken,
           date: date,
           startTime: startTime,
-          endTime: endTime
+          endTime: endTime,
+          recurWeeks: recurWeeks
         };
 
         const response = await fetch(WEB_APP_URL, {
@@ -1412,14 +1723,16 @@
         const result = await response.json();
 
         if (result.status === "success") {
-          showBanner(`SUCCESS: Your booking for ${room} has been confirmed!`, "success");
+          showBanner(result.message || `SUCCESS: Your booking for ${room} has been confirmed!`, "success");
           document.getElementById("booking-form").reset();
+          document.getElementById("recur-weeks-group").style.display = "none";
           applyBookingSignedInState(currentUserEmail);
           await fetchUpcomingEventsUntilVisible(room, groupName, newStart.toISOString());
           refreshMyBookingsIfActive();
         } else if (result.status === "pending") {
           showBanner(`REQUEST SENT: ${result.message}`, "loading");
           document.getElementById("booking-form").reset();
+          document.getElementById("recur-weeks-group").style.display = "none";
           applyBookingSignedInState(currentUserEmail);
         } else {
           showBanner(`BOOKING FAILED: ${result.message}`, "error");
