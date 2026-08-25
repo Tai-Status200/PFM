@@ -1293,11 +1293,16 @@
             <div class="leader-row-info">
               <span class="leader-row-email">${escapeHtml(a.email)}</span>
             </div>
-            <button class="btn-small-danger" onclick="removeAdmin('${a.email.replace(/'/g, "\\'")}')">Remove</button>
+            <button class="btn-small-danger remove-admin-btn" data-admin-email="${escapeHtml(a.email)}">Remove</button>
           </div>
         `;
       });
       container.innerHTML = html;
+      container.querySelectorAll(".remove-admin-btn").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          removeAdmin(btn.getAttribute("data-admin-email"));
+        });
+      });
     }
 
     async function loadAdminsForAdmin() {
