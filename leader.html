@@ -1192,11 +1192,16 @@
               <span class="leader-row-email">${escapeHtml(r.name)}</span>
               <span class="leader-row-access">${r.restricted ? "Restricted" : "Open"}</span>
             </div>
-            <button class="btn-small-danger" onclick="removeRoom('${r.name.replace(/'/g, "\\'")}')">Remove</button>
+            <button class="btn-small-danger" data-room-name="${escapeHtml(r.name)}">Remove</button>
           </div>
         `;
       });
       container.innerHTML = html;
+      container.querySelectorAll(".btn-small-danger[data-room-name]").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          removeRoom(btn.getAttribute("data-room-name"));
+        });
+      });
     }
 
     async function loadRoomsForAdmin() {
