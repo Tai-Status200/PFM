@@ -1167,13 +1167,14 @@
         const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
         const startStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         const endStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const escapedEmail = email.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 
         html += `
           <div class="event-item">
             <span class="event-room">${ev.room}</span>
             <div class="event-title">${ev.title}</div>
             <div class="event-time">${dateStr} | <strong>${startStr} - ${endStr}</strong></div>
-            <button class="btn btn-danger" onclick="openDeleteModal('${ev.id}', '${ev.room}', '${email.replace(/'/g, "\\'")}')">Remove Booking</button>
+            <button class="btn btn-danger" onclick="openDeleteModal('${ev.id}', '${ev.room}', '${escapedEmail}')">Remove Booking</button>
           </div>
         `;
       });
