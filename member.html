@@ -7,6 +7,7 @@
 
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f2b5c">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; base-uri 'self'; form-action 'self';">
 
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
@@ -781,8 +782,37 @@
 
     window.onload = async function() {
       await fetchUpcomingEvents();
-      setInterval(fetchUpcomingEvents, 60000); // keep the view fresh automatically
+      startAutoRefresh();
     };
+
+    // Paused while the tab isn't visible — no point polling a background
+    // tab nobody is looking at, and it's kinder to the Apps Script quota.
+    const AUTO_REFRESH_INTERVAL_MS = 60000;
+    let autoRefreshTimer = null;
+
+    function startAutoRefresh() {
+      if (autoRefreshTimer) return;
+      autoRefreshTimer = setInterval(function() {
+        if (document.hidden) return;
+        fetchUpcomingEvents();
+      }, AUTO_REFRESH_INTERVAL_MS);
+    }
+
+    function stopAutoRefresh() {
+      if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+      }
+    }
+
+    document.addEventListener("visibilitychange", function() {
+      if (document.hidden) {
+        stopAutoRefresh();
+      } else {
+        startAutoRefresh();
+        fetchUpcomingEvents();
+      }
+    });
 
     function extractBookedBy(ev) {
       const possibleKeys = [
