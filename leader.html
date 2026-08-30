@@ -683,39 +683,39 @@
 
         <div class="form-group">
           <label for="room">Select Room / Area:</label>
-          <select id="room" required>
+          <select id="room" required disabled>
             <option value="" disabled selected>Loading rooms...</option>
           </select>
         </div>
 
         <div class="form-group">
           <label for="group-name">Group or Ministry Name:</label>
-          <input type="text" id="group-name" placeholder="e.g., Youth Ministry, Choir Practice" required>
+          <input type="text" id="group-name" placeholder="e.g., Youth Ministry, Choir Practice" required disabled>
         </div>
 
         <div class="form-group">
           <label for="date">Date of Event:</label>
-          <input type="date" id="date" required>
+          <input type="date" id="date" required disabled>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
             <label for="start-time">Start Time:</label>
-            <input type="time" id="start-time" required>
+            <input type="time" id="start-time" required disabled>
           </div>
           <div class="form-group">
             <label for="end-time">End Time:</label>
-            <input type="time" id="end-time" required>
+            <input type="time" id="end-time" required disabled>
           </div>
         </div>
 
         <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-          <input type="checkbox" id="recur-checkbox" style="width: auto; padding: 0;" onchange="toggleRecurWeeksField()">
+          <input type="checkbox" id="recur-checkbox" style="width: auto; padding: 0;" onchange="toggleRecurWeeksField()" disabled>
           <label for="recur-checkbox" style="margin-bottom: 0; font-size: 17px;">Repeat weekly</label>
         </div>
         <div class="form-group" id="recur-weeks-group" style="display: none;">
           <label for="recur-weeks">Number of weeks (including this one):</label>
-          <input type="number" id="recur-weeks" min="2" max="12" value="4">
+          <input type="number" id="recur-weeks" min="2" max="12" value="4" disabled>
           <p style="color: var(--text-muted); font-size: 14px; margin: 6px 0 0 0;">Creates one booking per week, same day/time. All weeks are checked for conflicts before anything is booked.</p>
         </div>
 
@@ -725,12 +725,12 @@
 
     <div class="card">
       <h2>2. My Bookings</h2>
-      <p style="color: var(--text-muted); font-size: 17px; margin-top: -8px;">Enter your email to see and manage just your own bookings.</p>
+      <p style="color: var(--text-muted); font-size: 17px; margin-top: -8px;">Sign in above to see and manage just your own bookings.</p>
       <div class="form-group" style="margin-bottom: 14px;">
         <label for="my-bookings-email">Your Email:</label>
-        <input type="email" id="my-bookings-email" placeholder="e.g., yourname@gmail.com" onkeydown="if(event.key==='Enter'){event.preventDefault();findMyBookings();}">
+        <input type="email" id="my-bookings-email" placeholder="Sign in with Google above" onkeydown="if(event.key==='Enter'){event.preventDefault();findMyBookings();}" disabled readonly style="background: var(--surface-2); cursor: not-allowed;">
       </div>
-      <button type="button" class="btn" id="my-bookings-btn" onclick="findMyBookings()">Find My Bookings</button>
+      <button type="button" class="btn" id="my-bookings-btn" onclick="findMyBookings()" disabled>Sign In Above to Search</button>
 
       <div id="my-bookings-container" style="margin-top: 20px;"></div>
     </div>
@@ -1043,6 +1043,11 @@
       currentUserEmail = displayEmail;
       applyBookingSignedInState(displayEmail);
 
+      if (pendingCancelFromLink) {
+        openDeleteModal(pendingCancelFromLink.eventId, pendingCancelFromLink.room, displayEmail);
+        pendingCancelFromLink = null;
+      }
+
       const adminCardOpen = document.getElementById("admin-login-card").style.display === "block";
       if (!adminCardOpen) return;
 
@@ -1070,20 +1075,64 @@
       }
     }
 
+    // Every input on this page that shouldn't be usable until the person
+    // has proven their identity via Google Sign-In — kept as one list so
+    // enabling/disabling them together can't drift out of sync as fields
+    // get added later.
+    const GATED_INPUT_IDS = [
+      "room", "group-name", "date", "start-time", "end-time", "recur-checkbox"
+    ];
+
     function applyBookingSignedInState(email) {
-      const emailField = document.getElementById("email");
       const statusEl = document.getElementById("booking-signin-status");
       const submitBtn = document.getElementById("submit-btn");
       const deleteStatusEl = document.getElementById("delete-signin-status");
+      const myBookingsEmailField = document.getElementById("my-bookings-email");
+      const myBookingsBtn = document.getElementById("my-bookings-btn");
 
-      if (emailField) emailField.value = email;
+      const signedIn = !!email;
+
+      GATED_INPUT_IDS.forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !signedIn;
+      });
+
+      // If sign-out happens while the recurring-weeks field is showing,
+      // hide it too — its checkbox is now disabled and unreachable, so a
+      // visible-but-locked field would be confusing.
+      if (!signedIn) {
+        const recurGroup = document.getElementById("recur-weeks-group");
+        if (recurGroup) recurGroup.style.display = "none";
+        const recurWeeksInput = document.getElementById("recur-weeks");
+        if (recurWeeksInput) recurWeeksInput.disabled = true;
+      }
+
       if (statusEl) statusEl.textContent = email ? ("Signed in as " + email) : "";
       if (submitBtn) {
-        submitBtn.disabled = !email;
-        submitBtn.textContent = email ? "Check Availability & Book" : "Sign In Above to Book";
+        submitBtn.disabled = !signedIn;
+        submitBtn.textContent = signedIn ? "Check Availability & Book" : "Sign In Above to Book";
       }
       if (deleteStatusEl) {
-        deleteStatusEl.textContent = email ? ("Confirming as " + email) : "Please sign in above before removing a booking.";
+        deleteStatusEl.textContent = signedIn ? ("Confirming as " + email) : "Please sign in above before removing a booking.";
+      }
+
+      // My Bookings is locked to the verified identity too — it's no
+      // longer a free-text lookup, so it always reflects who actually
+      // signed in rather than whatever was last typed.
+      if (myBookingsEmailField) {
+        myBookingsEmailField.value = email || "";
+        myBookingsEmailField.placeholder = signedIn ? "" : "Sign in with Google above";
+      }
+      if (myBookingsBtn) {
+        myBookingsBtn.disabled = !signedIn;
+        myBookingsBtn.textContent = signedIn ? "Find My Bookings" : "Sign In Above to Search";
+      }
+
+      if (signedIn) {
+        findMyBookings();
+      } else {
+        const container = document.getElementById("my-bookings-container");
+        if (container) container.innerHTML = "";
       }
     }
 
@@ -1571,7 +1620,7 @@
       const container = document.getElementById("my-bookings-container");
 
       if (!email) {
-        container.innerHTML = "<p style='color: var(--danger); font-weight: 600;'>Enter your email above to find your bookings.</p>";
+        container.innerHTML = "<p style='color: var(--danger); font-weight: 600;'>Please sign in with Google above first.</p>";
         return;
       }
 
@@ -1621,6 +1670,8 @@
       container.innerHTML = html;
     }
 
+    let pendingCancelFromLink = null;
+
     function handleUrlParams() {
       const params = new URLSearchParams(window.location.search);
       const myEmail = params.get('myEmail');
@@ -1629,13 +1680,19 @@
 
       if (!myEmail) return;
 
-      document.getElementById('my-bookings-email').value = myEmail;
-      findMyBookings();
-      document.getElementById('my-bookings-email').scrollIntoView({ behavior: 'smooth', block: 'center' });
-
+      // The email in this link came from a confirmation email, not a
+      // signed-in session — it's a convenience hint, not proof of
+      // identity. My Bookings is now driven entirely by verified sign-in,
+      // so this just nudges the person to sign in rather than populating
+      // anything directly. Once they do, applyBookingSignedInState's
+      // automatic search takes over, and the cancel modal (if this link
+      // was for cancelling) opens using their verified identity.
       if (cancelEventId && cancelRoom) {
-        openDeleteModal(cancelEventId, cancelRoom, myEmail);
+        pendingCancelFromLink = { eventId: cancelEventId, room: cancelRoom };
       }
+
+      showBanner("Sign in with Google above to view or manage your bookings.", "loading");
+      document.getElementById('booking-signin-area').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     function checkTimeConflict(room, newStart, newEnd) {
