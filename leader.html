@@ -951,10 +951,11 @@
 
     document.getElementById('date').min = new Date().toISOString().split("T")[0];
 
-    window.onload = async function() {
-      await fetchUpcomingEvents();
-      handleUrlParams();
+    window.onload = function() {
       initGoogleSignIn();
+      fetchUpcomingEvents().then(function() {
+        handleUrlParams();
+      });
       startAutoRefresh();
     };
 
@@ -998,9 +999,18 @@
       card.style.display = (card.style.display === "none" || !card.style.display) ? "block" : "none";
     }
 
-    function initGoogleSignIn() {
+    function initGoogleSignIn(attemptsLeft) {
+      if (attemptsLeft === undefined) attemptsLeft = 20; // ~5s total at 250ms apart
+
       if (!window.google || !google.accounts || !google.accounts.id) {
-        document.getElementById("google-signin-fallback").style.display = "block";
+        // The script tag is async/defer, so on a slow connection it can
+        // still be loading when this first runs — that's normal, not a
+        // failure. Retry briefly before actually giving up.
+        if (attemptsLeft > 0) {
+          setTimeout(function() { initGoogleSignIn(attemptsLeft - 1); }, 250);
+        } else {
+          document.getElementById("google-signin-fallback").style.display = "block";
+        }
         return;
       }
 
