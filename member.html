@@ -115,6 +115,15 @@
       margin-bottom: 16px;
     }
 
+    .logo-container a {
+      display: inline-block;
+      transition: opacity 0.15s ease;
+    }
+
+    .logo-container a:hover {
+      opacity: 0.85;
+    }
+
     .church-logo {
       max-width: 100%;
       height: auto;
@@ -574,7 +583,9 @@
   <div class="container">
     <header>
       <div class="logo-container">
-        <img src="PFM.png" alt="The Power of Faith Ministries International Inc. Logo" class="church-logo">
+        <a href="index.html" aria-label="Back to home">
+          <img src="PFM.png" alt="The Power of Faith Ministries International Inc. Logo" class="church-logo">
+        </a>
       </div>
       <h1>The Power of Faith Ministries International Inc.</h1>
       <p class="subtitle">Room Schedule — View Only</p>
